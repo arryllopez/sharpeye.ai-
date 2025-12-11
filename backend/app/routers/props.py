@@ -1,40 +1,52 @@
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
-from typing import Literal
+from app.schemas.props_schema import (
+    PropsSimRequest,
+    PropsSimResponse,
+    ProbabilityBreakdown,
+    EdgeResult,
+)
+from app.services.feature_builder import build_props_features
+from app.services.props_model import PropsBaselineModel
+from app.services.bayesian_adjustment import apply_bayesian_adjustment, AdjustmentContext
+from app.services.monte_carlo import run_props_monte_carlo
 
 router = APIRouter()
 
-class PropsSimRequest(BaseModel):
-    league: Literal["nba", "nhl", "nfl", "mlb"]
-    player_name: str
-    stat_type: str
-    line: float
-    opponent: str = "TBD"
-    minutes_projection: float = 34.0
-    pace_factor: float = 1.0
-    recent_avg: float | None = None
-    n_sims: int = Field(default=10000, ge=1000, le=200000)
-
-@router.post("/simulate") #only uses the post method , keep in mind when building frontend
+@router.post("/simulate", response_model=PropsSimResponse)
 def simulate_prop(req: PropsSimRequest):
-    #fake output just to test
+    # 1) Build features from request
+    features = build_props_features(
+        recent_avg=req.recent_avg,
+        minutes_projection=req.minutes_projection,
+        pace_factor=req.pace_factor,
+        opponent=req.opponent
+    )
 
-    expected_mean = req.recent_avg if req.recent_avg is not None else 25.0
-    expected_std = max(2.0, 0.22 * expected_mean)
+    # 2) Baseline model prediction
+    model = PropsBaselineModel()
+    mean, std = model.predict_mean_std(req.stat_type, features)
 
-    adjusted_mean = expected_mean * (req.minutes_projection / 34.0) * req.pace_factor
-    adjusted_std = expected_std
+    # 3) Context-aware adjustment
+    ctx = AdjustmentContext(
+        minutes_projection=req.minutes_projection,
+        pace_factor=req.pace_factor
+    )
+    adj_mean, adj_std = apply_bayesian_adjustment(mean, std, ctx)
 
-    # Fake probabilities for now
-    over_prob = 0.58
-    under_prob = 0.42
+    # 4) Monte Carlo simulation
+    over_p, under_p, sample = run_props_monte_carlo(
+        req.stat_type, adj_mean, adj_std, req.line, req.n_sims
+    )
 
-    return {
-        "expected_mean": expected_mean,
-        "expected_std": expected_std,
-        "adjusted_mean": adjusted_mean,
-        "adjusted_std": adjusted_std,
-        "probs": {"over_prob": over_prob, "under_prob": under_prob},
-        "distribution_sample": [22, 24, 26, 28, 30],
-        "edges": []
-    }
+    # 5) No odds/edges yet – we’ll add sportsbook comparison later
+    edges: list[EdgeResult] = []
+
+    return PropsSimResponse(
+        expected_mean=mean,
+        expected_std=std,
+        adjusted_mean=adj_mean,
+        adjusted_std=adj_std,
+        probs=ProbabilityBreakdown(over_prob=over_p, under_prob=under_p),
+        distribution_sample=sample,
+        edges=edges
+    )
