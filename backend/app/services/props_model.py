@@ -1,4 +1,6 @@
 from app.services.feature_builder import PropsFeatures
+#will use the trained model from the training script
+#all api calls will go through this file to get predictions
 
 class PropsBaselineModel:
  # Simple heuristic model for predicting mean and std dev of player props

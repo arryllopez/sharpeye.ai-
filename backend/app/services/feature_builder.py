@@ -1,5 +1,5 @@
 #where historical dta will be fetched and features will be built
-
+#This takes raw request inputs (recent_avg, minutes_projection, pace_factor, opponent) and turns them into a clean feature object
 from dataclasses import dataclass
 from typing import Optional
 
