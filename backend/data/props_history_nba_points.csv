@@ -1,0 +1,6 @@
+date,league,player_name,stat_type,opponent,minutes_projection,pace_factor,recent_avg,actual_stat
+2025-01-01,nba,Shai Gilgeous-Alexander,points,Lakers,35,1.02,30.1,32
+2025-01-02,nba,Shai Gilgeous-Alexander,points,Clippers,34,0.98,29.5,27
+2025-01-03,nba,Lebron James,points,Thunder,36,1.05,27.3,29
+2025-01-04,nba,Steph Curry,points,Suns,34,1.08,28.9,35
+2025-01-05,nba,Luka Doncic,points,Celtics,37,0.97,31.2,26
