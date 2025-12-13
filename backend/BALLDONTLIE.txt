@@ -1,0 +1,4 @@
+found a website that returns current nba games and should return a list of all players in the game aswell 
+API key : b4cc9ae8-63db-45b9-aa48-4abc6e19e3bb
+
+or I can use the odds api 

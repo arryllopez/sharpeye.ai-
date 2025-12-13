@@ -1,18 +1,39 @@
+# ======================
 # OS
+# ======================
 .DS_Store
+Thumbs.db
 
-# Node
+# ======================
+# Node / Frontend
+# ======================
 node_modules/
 .next/
 dist/
 out/
 
-# Python
+# ======================
+# Python / Backend
+# ======================
 venv/
+.venv/
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
 
-# IDE
+# Environment variables
+.env
+backend/.env
+
+# ======================
+# Logs & Temp
+# ======================
+*.log
+*.tmp
+
+# ======================
+# IDE / Editor
+# ======================
 .vscode/
 .idea/

@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from app.routers import health, props
+from app.api.nba_routes import router as nba_router
 
-app = FastAPI(title="SharpEye.ai Backend")
+app = FastAPI(title="SharpEye Backend", version="0.1.0")
 
-app.include_router(health.router, tags=["health"])
-app.include_router(props.router, prefix="/props", tags=["props"])
-# props - simulate() will have route 127... /props/simulate 
-# due to this line --> @router.post("/simulate")
+app.include_router(nba_router)
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
