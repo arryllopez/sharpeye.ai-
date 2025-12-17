@@ -30,7 +30,6 @@ teams["GAME_DATE"] = pd.to_datetime(teams["GAME_DATE"])
 # -------------------------------------------------
 # EXTRACT OPPONENT ABBREVIATION FROM MATCHUP
 # Examples:
-# "LAL vs SAS" → SAS
 # "LAL @ SAS"  → SAS
 # -------------------------------------------------
 players["OPP_ABBR"] = players["MATCHUP"].apply(
