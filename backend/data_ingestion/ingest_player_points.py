@@ -19,7 +19,8 @@ SEASONS = [
     "2021-22",
     "2022-23",
     "2023-24",
-    "2024-25",  # partial season is fine
+    "2024-25",
+    "2025-26",
 ]
 
 SLEEP_SECONDS = 1.0  # safe rate limit

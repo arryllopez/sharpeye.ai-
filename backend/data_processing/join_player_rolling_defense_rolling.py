@@ -1,3 +1,4 @@
+# backend/data_processing/join_player_rolling_defense_rolling.py
 import pandas as pd
 from pathlib import Path
 
@@ -8,9 +9,7 @@ OUT_PATH = Path("data/processed/model_dataset.csv")
 players = pd.read_csv(PLAYER_PATH, parse_dates=["GAME_DATE"])
 teams = pd.read_csv(DEF_PATH, parse_dates=["GAME_DATE"])
 
-# --------------------------------------------------
-# Local team mapping (minimal, expandable)
-# --------------------------------------------------
+# Team mapping
 TEAM_ABBR_TO_NAME = {
     "ATL": "Atlanta Hawks",
     "BOS": "Boston Celtics",
@@ -44,9 +43,7 @@ TEAM_ABBR_TO_NAME = {
     "WAS": "Washington Wizards",
 }
 
-# -------------------------
-# Extract opponent abbrev
-# -------------------------
+# Extract opponent
 def extract_opponent(matchup: str) -> str:
     if "vs." in matchup:
         return matchup.split("vs.")[-1].strip()
@@ -60,7 +57,7 @@ players["OPP_TEAM_NAME"] = players["OPP_ABBR"].map(TEAM_ABBR_TO_NAME)
 # Drop unmapped games
 players = players.dropna(subset=["OPP_TEAM_NAME"])
 
-# Normalize defense team names
+# Normalize team names
 teams["TEAM_NAME"] = teams["TEAM_NAME"].str.strip()
 
 DEF_COLS = [
@@ -69,9 +66,7 @@ DEF_COLS = [
     "DEF_3PT_PCT_L5",
 ]
 
-# -------------------------
-# SAFE per-team asof merge
-# -------------------------
+# Per-team asof merge (CORRECT APPROACH)
 merged_chunks = []
 
 for team in players["OPP_TEAM_NAME"].unique():
@@ -79,6 +74,7 @@ for team in players["OPP_TEAM_NAME"].unique():
     t = teams[teams["TEAM_NAME"] == team].copy()
 
     if t.empty:
+        print(f"⚠️  No defense data for {team}")
         continue
 
     p = p.sort_values("GAME_DATE")
@@ -95,8 +91,14 @@ for team in players["OPP_TEAM_NAME"].unique():
 
 final_df = pd.concat(merged_chunks, ignore_index=True)
 
+# Sort final dataset
+final_df = final_df.sort_values("GAME_DATE").reset_index(drop=True)
+
 OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 final_df.to_csv(OUT_PATH, index=False)
 
-print("[OK] Model dataset created:", OUT_PATH)
-print("Rows:", len(final_df))
+print("\n Model dataset created!")
+print(f" Saved to: {OUT_PATH}")
+print(f" Rows: {len(final_df):,}")
+print(f" Date range: {final_df['GAME_DATE'].min()} to {final_df['GAME_DATE'].max()}")
+print(f" Players: {final_df['PLAYER_NAME'].nunique():,}")

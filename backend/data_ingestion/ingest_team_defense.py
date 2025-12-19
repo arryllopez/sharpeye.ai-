@@ -27,6 +27,8 @@ os.makedirs(RAW_DATA_DIR, exist_ok=True)
 
 
 SEASON_START_YEARS = [
+    2021,
+    2022,
     2023,  # 2023–24
     2024,  # 2024–25 
     2025,  # this will be the partial season 
