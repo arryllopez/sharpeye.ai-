@@ -24,7 +24,7 @@ def load_data():
 def basic_statistics(df):
     """Print basic dataset statistics"""
     print("\n" + "="*70)
-    print("📊 BASIC STATISTICS")
+    print("BASIC STATISTICS")
     print("="*70)
     print(f"Total rows:        {len(df):,}")
     print(f"Unique players:    {df['PLAYER_NAME'].nunique():,}")
@@ -43,7 +43,7 @@ def basic_statistics(df):
 def check_columns(df):
     """Verify all required columns exist"""
     print("\n" + "="*70)
-    print("📋 COLUMN CHECK")
+    print("COLUMN CHECK")
     print("="*70)
     
     required_cols = [
@@ -58,26 +58,26 @@ def check_columns(df):
     extra = [col for col in df.columns if col not in required_cols]
     
     if missing:
-        print(f"❌ Missing columns: {missing}")
+        print(f"[FAIL] Missing columns: {missing}")
     else:
-        print(f"✅ All required columns present")
+        print(f"[PASS] All required columns present")
     
     if extra:
-        print(f"ℹ️  Extra columns: {extra}")
+        print(f"[INFO] Extra columns: {extra}")
     
     print(f"\nTotal columns: {len(df.columns)}")
 
 def check_missing_values(df):
     """Check for missing values"""
     print("\n" + "="*70)
-    print("❓ MISSING VALUES")
+    print("MISSING VALUES")
     print("="*70)
     
     missing = df.isnull().sum()
     missing = missing[missing > 0].sort_values(ascending=False)
     
     if len(missing) == 0:
-        print("✅ No missing values!")
+        print("[PASS] No missing values!")
     else:
         print("Missing value counts:")
         for col, count in missing.items():
@@ -85,13 +85,13 @@ def check_missing_values(df):
             print(f"  {col:30s}: {count:6,} ({pct:5.2f}%)")
         
         # Check if missing values make sense
-        print("\n💡 Note: Missing rolling features (PTS_L5, etc.) are expected")
-        print("   for players' first few games of the season.")
+        print("\nNote: Missing rolling features (PTS_L5, etc.) are expected")
+        print("      for players' first few games of the season.")
 
 def check_data_types(df):
     """Verify data types are correct"""
     print("\n" + "="*70)
-    print("🔢 DATA TYPES")
+    print("DATA TYPES")
     print("="*70)
     
     # Check numeric columns
@@ -101,20 +101,20 @@ def check_data_types(df):
     for col in numeric_cols:
         if col in df.columns:
             if not pd.api.types.is_numeric_dtype(df[col]):
-                print(f"❌ {col} is not numeric: {df[col].dtype}")
+                print(f"[FAIL] {col} is not numeric: {df[col].dtype}")
             else:
-                print(f"✅ {col:30s}: {df[col].dtype}")
+                print(f"[PASS] {col:30s}: {df[col].dtype}")
     
     # Check date
     if pd.api.types.is_datetime64_any_dtype(df['GAME_DATE']):
-        print(f"✅ {'GAME_DATE':30s}: datetime64")
+        print(f"[PASS] {'GAME_DATE':30s}: datetime64")
     else:
-        print(f"❌ GAME_DATE is not datetime: {df['GAME_DATE'].dtype}")
+        print(f"[FAIL] GAME_DATE is not datetime: {df['GAME_DATE'].dtype}")
 
 def validate_rolling_features(df):
     """CRITICAL: Verify rolling features don't leak future data"""
     print("\n" + "="*70)
-    print("🔍 TEMPORAL CORRECTNESS CHECK (NO DATA LEAKAGE)")
+    print("TEMPORAL CORRECTNESS CHECK (NO DATA LEAKAGE)")
     print("="*70)
     
     # Test multiple players
@@ -142,8 +142,8 @@ def validate_rolling_features(df):
         match_l5 = abs(manual_l5 - dataset_l5) < 0.1 if pd.notna(dataset_l5) else False
         match_l10 = abs(manual_l10 - dataset_l10) < 0.1 if pd.notna(dataset_l10) else False
         
-        status_l5 = "✅" if match_l5 else "❌"
-        status_l10 = "✅" if match_l10 else "❌"
+        status_l5 = "[PASS]" if match_l5 else "[FAIL]"
+        status_l10 = "[PASS]" if match_l10 else "[FAIL]"
         
         print(f"\n{player_name} (Row {row_idx}):")
         print(f"  PTS_L5:  Dataset={dataset_l5:.2f}, Manual={manual_l5:.2f} {status_l5}")
@@ -153,35 +153,35 @@ def validate_rolling_features(df):
             all_valid = False
     
     if all_valid:
-        print("\n✅ ROLLING FEATURES ARE TEMPORALLY CORRECT - NO DATA LEAKAGE!")
+        print("\n[PASS] ROLLING FEATURES ARE TEMPORALLY CORRECT - NO DATA LEAKAGE!")
     else:
-        print("\n❌ WARNING: Rolling features may have data leakage!")
+        print("\n[FAIL] WARNING: Rolling features may have data leakage!")
 
 def check_opponent_mapping(df):
     """Verify opponent abbreviations are correctly mapped"""
     print("\n" + "="*70)
-    print("🏀 OPPONENT MAPPING CHECK")
+    print("OPPONENT MAPPING CHECK")
     print("="*70)
     
     # Check for unmapped opponents
     unmapped = df[df['OPP_TEAM_NAME'].isnull()]
     
     if len(unmapped) > 0:
-        print(f"❌ Found {len(unmapped)} games with unmapped opponents")
-        print(f"   Unique unmapped abbreviations: {unmapped['OPP_ABBR'].unique()}")
+        print(f"[FAIL] Found {len(unmapped)} games with unmapped opponents")
+        print(f"       Unique unmapped abbreviations: {unmapped['OPP_ABBR'].unique()}")
     else:
-        print("✅ All opponents correctly mapped")
+        print("[PASS] All opponents correctly mapped")
     
     # Show mapping sample
     print("\nSample opponent mappings:")
     sample = df[['OPP_ABBR', 'OPP_TEAM_NAME']].drop_duplicates().head(10)
     for _, row in sample.iterrows():
-        print(f"  {row['OPP_ABBR']:5s} → {row['OPP_TEAM_NAME']}")
+        print(f"  {row['OPP_ABBR']:5s} -> {row['OPP_TEAM_NAME']}")
 
 def check_defense_features(df):
     """Verify defensive features are reasonable"""
     print("\n" + "="*70)
-    print("🛡️  DEFENSIVE FEATURES CHECK")
+    print("DEFENSIVE FEATURES CHECK")
     print("="*70)
     
     # Check ranges
@@ -193,9 +193,9 @@ def check_defense_features(df):
         actual_max = df[col].max()
         
         if actual_min < min_val or actual_max > max_val:
-            print(f"⚠️  {name}: Range [{actual_min:.2f}, {actual_max:.2f}] outside expected [{min_val}, {max_val}]")
+            print(f"[WARN] {name}: Range [{actual_min:.2f}, {actual_max:.2f}] outside expected [{min_val}, {max_val}]")
         else:
-            print(f"✅ {name:30s}: [{actual_min:.2f}, {actual_max:.2f}]")
+            print(f"[PASS] {name:30s}: [{actual_min:.2f}, {actual_max:.2f}]")
     
     check_range('DEF_PTS_ALLOWED_L5', 80, 140, 'DEF_PTS_ALLOWED_L5')
     check_range('DEF_3PT_ALLOWED_L5', 8, 18, 'DEF_3PT_ALLOWED_L5')
@@ -204,7 +204,7 @@ def check_defense_features(df):
 def sample_data(df):
     """Show sample rows"""
     print("\n" + "="*70)
-    print("📄 SAMPLE DATA")
+    print("SAMPLE DATA")
     print("="*70)
     
     # Show recent games from a star player
@@ -220,35 +220,35 @@ def sample_data(df):
 def data_quality_checks(df):
     """Additional quality checks"""
     print("\n" + "="*70)
-    print("✨ DATA QUALITY CHECKS")
+    print("DATA QUALITY CHECKS")
     print("="*70)
     
     # Check for duplicate games
     duplicates = df.duplicated(subset=['PLAYER_ID', 'GAME_DATE'], keep=False)
     if duplicates.any():
-        print(f"❌ Found {duplicates.sum()} duplicate player-game combinations")
+        print(f"[FAIL] Found {duplicates.sum()} duplicate player-game combinations")
     else:
-        print("✅ No duplicate player-game combinations")
+        print("[PASS] No duplicate player-game combinations")
     
     # Check IS_HOME values
     home_values = df['IS_HOME'].unique()
     if set(home_values) == {0, 1}:
-        print(f"✅ IS_HOME values correct: {sorted(home_values)}")
+        print(f"[PASS] IS_HOME values correct: {sorted(home_values)}")
     else:
-        print(f"❌ IS_HOME has unexpected values: {sorted(home_values)}")
+        print(f"[FAIL] IS_HOME has unexpected values: {sorted(home_values)}")
     
     # Check for negative values where they shouldn't exist
     numeric_cols = ['MIN', 'PTS', 'REB', 'AST', 'FG3M']
     for col in numeric_cols:
         if (df[col] < 0).any():
-            print(f"❌ {col} has negative values")
+            print(f"[FAIL] {col} has negative values")
         else:
-            print(f"✅ {col} has no negative values")
+            print(f"[PASS] {col} has no negative values")
 
 def summary(df):
     """Final summary"""
     print("\n" + "="*70)
-    print("📝 SUMMARY")
+    print("SUMMARY")
     print("="*70)
     
     # Count how many rows are "model-ready" (no missing features)
@@ -257,12 +257,12 @@ def summary(df):
     
     print(f"Model-ready rows:  {len(model_ready):,} / {len(df):,} ({len(model_ready)/len(df)*100:.1f}%)")
     print(f"Players with data: {model_ready['PLAYER_NAME'].nunique():,}")
-    print(f"\nDataset is ready for training! ✅")
+    print(f"\nDataset is ready for training!")
 
 def main():
     """Run all validation checks"""
     print("\n" + "="*70)
-    print("🔬 SHARPEYE.AI DATASET VALIDATION")
+    print("SHARPEYE.AI DATASET VALIDATION")
     print("="*70)
     
     try:
@@ -280,11 +280,11 @@ def main():
         summary(df)
         
         print("\n" + "="*70)
-        print("✅ VALIDATION COMPLETE")
+        print("VALIDATION COMPLETE")
         print("="*70 + "\n")
         
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\n[ERROR] {e}")
         import traceback
         traceback.print_exc()
 
