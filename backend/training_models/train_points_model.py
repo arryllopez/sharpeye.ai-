@@ -299,3 +299,13 @@ print(f"Within ±5 pts:   {within_5:.1f}%")
 print(f"R² Score:        {test_r2:.3f}")
 print(f"\nVerdict: {verdict}")
 print("="*70 + "\n")
+
+#using plots to display how well regression fitted
+import matplotlib.pyplot as plt
+plt.figure()
+plt.scatter(y_test, y_test_pred, alpha=0.3)
+plt.plot([0, 70], [0, 70])  # perfect prediction line
+plt.xlabel("Actual Points")
+plt.ylabel("Predicted Points")
+plt.title("Predicted vs Actual Points")
+plt.show()
