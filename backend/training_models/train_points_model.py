@@ -70,3 +70,39 @@ feature_cols = base_features + team_cols
 print(f"Total features: {len(feature_cols)}")
 print(f"  Base features: {len(base_features)}")
 print(f"  Team features: {len(team_cols)}")
+
+x = df_encoded[feature_cols]
+y = df_encoded['PTS']
+
+#displaying dataset statistics
+print(f"\nTarget (PTS) statistics:")
+print(f"  Mean:   {y.mean():.2f}")       # Average points scored
+print(f"  Median: {y.median():.2f}")     # Middle value
+print(f"  Std:    {y.std():.2f}")        # Standard deviation (spread)
+print(f"  Min:    {y.min()}")            # Lowest points in dataset
+print(f"  Max:    {y.max()}")            # Highest points in dataset
+
+#splitting dataset into training and testing sets
+
+split_idx = int(len(x) * TRAIN_SPLIT ) #calcuialting splitn at 80%  mark of dataset
+split_date = df_encoded.iloc[split_idx]['GAME_DATE'] #what date does the split occur
+
+x_train = x.iloc[:split_idx] 
+x_test = x.ioloc[split_idx:]
+y_train = y.iloc[:split_idx]
+y_test = y.iloc[split_idx:]
+
+print("\nDataset split:")
+print(f"  Training rows: {len(x_train):,} (up to {split_date.date()})")
+print(f"  Testing rows:  {len(x_test):,} (from {split_date.date()})")
+print("--------")
+
+#training the XGBoost model
+print("Training XGBoost model...")
+#initialize the modela nd specify hyperparameters
+model = xgb.XGBRegressor(
+    
+
+
+
+) 
