@@ -322,10 +322,21 @@ print("="*70 + "\n")
 
 #using plots to display how well regression fitted
 import matplotlib.pyplot as plt
-plt.figure()
-plt.scatter(y_test, y_test_pred, alpha=0.3)
-plt.plot([0, 70], [0, 70])  # perfect prediction line
-plt.xlabel("Actual Points")
-plt.ylabel("Predicted Points")
-plt.title("Predicted vs Actual Points")
+# Use row index for x-axis
+row_idx = y_test.index  # original CSV row indices
+
+plt.figure(figsize=(12, 6))
+
+# Plot actual points as integers
+plt.scatter(row_idx, y_test.astype(int), color='green', alpha=0.6, label='Actual Points')
+
+# Plot predicted points as floats
+plt.scatter(row_idx, y_test_pred, color='blue', alpha=0.6, label='Predicted Points')
+
+plt.xlabel("Row Index in CSV / Game Order")
+plt.ylabel("Points")
+plt.title("Actual vs Predicted Points per Game (Row-level)")
+plt.legend()
+plt.grid(True)
+
 plt.show()
