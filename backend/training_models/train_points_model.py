@@ -43,13 +43,33 @@ print(f"Total rows: {len(df):,}")  # :, adds comma separators (103,836)
 print(f"Date range: {df['GAME_DATE'].min().date()} to {df['GAME_DATE'].max().date()}")
 
 #include the features for training
-base_features = [ 
-    'IS_HOME',                    
-    'PTS_L5',                     
-    'PTS_L10',                    
-    'MIN_L5',                     
-    'DEF_PTS_ALLOWED_L5',        
-    'DEF_3PT_ALLOWED_L5',         
+base_features = [  
+    #adding the new features
+    # context
+    'IS_HOME',
+
+    # scoring trends
+    'PTS_L5',
+    'PTS_L10',
+    'PTS_STD_L10',
+
+    # minutes / role
+    'MIN_L5',
+    'PTS_PER_MIN_L5',
+
+    # usage & volume
+    'USAGE_L5',
+    'FGA_L5',
+    'FG3A_L5',
+
+    # peripherals (stability indicators)
+    'REB_L5',
+    'AST_L5',
+    'FG3M_L5',
+
+    # defense
+    'DEF_PTS_ALLOWED_L5',
+    'DEF_3PT_ALLOWED_L5',
     'DEF_3PT_PCT_L5',
 ]
 

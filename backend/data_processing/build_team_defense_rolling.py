@@ -29,24 +29,33 @@ grouped = df.groupby("TEAM_NAME", group_keys=False)
 # ===============================
 df["DEF_PTS_ALLOWED_L5"] = (
     grouped["PTS_ALLOWED"]
-    .rolling(window=5, min_periods=5, closed="left")
+    .shift(1)
+    .rolling(5)
     .mean()
-    .reset_index(level=0, drop=True)
 )
+
 
 df["DEF_3PT_ALLOWED_L5"] = (
     grouped["FG3_ALLOWED"]
-    .rolling(window=5, min_periods=5, closed="left")
+    .shift(1)
+    .rolling(5)
     .mean()
-    .reset_index(level=0, drop=True)
 )
 
 df["DEF_3PT_PCT_L5"] = (
     grouped["OPP_FG3_PCT"]
-    .rolling(window=5, min_periods=5, closed="left")
+    .shift(1)
+    .rolling(5)
     .mean()
-    .reset_index(level=0, drop=True)
 )
+
+df["DEF_PTS_ALLOWED_STD_L10"] = (
+    grouped["PTS_ALLOWED"]
+    .shift(1)
+    .rolling(10)
+    .std()
+)
+
 
 # ===============================
 # SAVE OUTPUT
@@ -60,6 +69,7 @@ out_cols = [
     "DEF_PTS_ALLOWED_L5",
     "DEF_3PT_ALLOWED_L5",
     "DEF_3PT_PCT_L5",
+    "DEF_PTS_ALLOWED_STD_L10",
 ]
 
 df[out_cols].to_csv(OUT_PATH, index=False)

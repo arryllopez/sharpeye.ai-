@@ -9,6 +9,7 @@ import time
 import pandas as pd
 from tqdm import tqdm
 from nba_api.stats.endpoints import leaguegamelog
+import os
 
 
 # ======================
@@ -24,7 +25,10 @@ SEASONS = [
 ]
 
 SLEEP_SECONDS = 1.0  # safe rate limit
-OUTPUT_PATH = "data/raw/player_game_logs.csv"
+#absolute path to output csv
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_PATH = os.path.join(BACKEND_DIR, "data", "raw", "player_game_logs.csv")
+
 
 
 # ======================
@@ -65,16 +69,25 @@ def main():
 
     df = df[
         [
-            "PLAYER_ID",
-            "PLAYER_NAME",
-            "TEAM_ABBREVIATION",
-            "GAME_DATE",
-            "MATCHUP",
-            "MIN",
-            "PTS",
-            "REB",
-            "AST",
-            "FG3M",
+        #adding more features 
+        "PLAYER_ID",
+        "PLAYER_NAME",
+        "TEAM_ABBREVIATION",
+        "GAME_DATE",
+        "MATCHUP",
+        "MIN",
+        "PTS",
+        "REB",
+        "AST",
+        "FGM",
+        "FGA",
+        "FG3M",
+        "FG3A",
+        "FTM",
+        "FTA",
+        "TOV",
+        "PF",
+        "PLUS_MINUS",
         ]
     ]
 
@@ -90,7 +103,8 @@ def main():
     ).reset_index(drop=True)
 
     print(f"\nFinal dataset size: {len(df)} rows")
-
+    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+    
     df.to_csv(OUTPUT_PATH, index=False)
     print(f"Saved to {OUTPUT_PATH}")
 

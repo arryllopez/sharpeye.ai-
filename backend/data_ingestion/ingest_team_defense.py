@@ -93,7 +93,7 @@ def build_defensive_logs(df: pd.DataFrame, season: str) -> pd.DataFrame:
     merged = merged[merged["TEAM_ID"] != merged["OPP_TEAM_ID"]]
 
     merged["OPP_FG3_PCT"] = (
-        merged["FG3_ALLOWED"] / merged["FG3A_ALLOWED"]
+        merged["FG3_ALLOWED"] / merged["FG3A_ALLOWED"].replace(0,pd.NA) 
     )
 
     final = merged[
