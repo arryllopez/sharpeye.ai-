@@ -1,1 +1,200 @@
 https://www.kaggle.com/code/prashant111/a-guide-on-xgboost-hyperparameters-tuning/notebook
+
+Metrics on December 20, 2025 - Default Parameters 
+--------
+Loading Dataset...
+--------
+Total rows: 104,209
+Date range: 2021-11-07 to 2025-12-20
+Rows after dropping missing: 104,173 (100.0%)
+Total features: 73
+  Base features: 15
+  Team features: 58
+
+Target (PTS) statistics:
+  Mean:   11.04
+  Median: 9.00
+  Std:    8.89
+  Min:    0
+  Max:    73
+
+Dataset split:
+  Training rows: 83,338 (up to 2025-01-20)
+  Testing rows:  20,835 (from 2025-01-20)
+--------
+Training XGBoost model...
+
+Hyperparameters:
+  n_estimators:     200
+  learning_rate:    0.05
+  max_depth:        5
+  min_child_weight: 3
+  subsample:        0.8
+  colsample_bytree: 0.8
+
+Training...
+Training complete!
+
+======================================================================
+MODEL ACCURACY RESULTS
+======================================================================
+
+[1] MAE (Mean Absolute Error) — MOST IMPORTANT
+----------------------------------------------------------------------
+Test MAE: 4.77 points
+
+What this means:
+  - On average, predictions are off by 4.77 points
+  - Example: Predict 25 pts, actual could be 20.2 to 29.8
+
+Rating: VERY GOOD
+Effective Accuracy: ~88–92% accurate
+Verdict: Strong model! Great for sports betting.
+
+[2] RMSE (Root Mean Squared Error)
+----------------------------------------------------------------------
+Test RMSE: 6.22 points
+
+What this means:
+  - Average prediction error, but large mistakes are penalized more heavily
+  - Measured in the same units as the target variable (points)
+  - Sensitive to outliers (big misses hurt the score more)
+  - RMSE / MAE ratio: 1.30
+  - Warning: Some predictions are significantly off
+
+[3] R² Score (How Much Variance Is Explained)
+----------------------------------------------------------------------
+Test R²: 0.509
+
+What this means:
+  - Model explains 50.9% of why points vary
+  - Remaining 49.1% is due to unpredictable factors
+    (injuries, hot/cold streaks, coaching decisions, etc.)
+  - Okay! Moderate predictive power
+
+[4] Prediction Accuracy Breakdown
+----------------------------------------------------------------------
+Predictions within ±3 points:  40.2%
+Predictions within ±5 points:  62.4%
+Predictions within ±10 points: 90.1%
+
+What this means for betting:
+  - EXCELLENT: Most predictions are very close to actual outcomes
+
+Saving model...
+[SAVED] Model: C:\Users\arryl\OneDrive\Desktop\sharpeye.ai-\backend\models\xgb_points_model_defaultParams.pkl
+[SAVED] Features: C:\Users\arryl\OneDrive\Desktop\sharpeye.ai-\backend\models\feature_cols_default.pkl
+[SAVED] Metadata: C:\Users\arryl\OneDrive\Desktop\sharpeye.ai-\backend\models\model_metadata_default.pkl
+
+======================================================================
+FINAL SUMMARY - DEFAULT PARAMETERS
+======================================================================
+
+Test MAE:        4.77 points
+Accuracy Rating: VERY GOOD
+Within ±5 pts:   62.4%
+R² Score:        0.509
+
+Verdict: Strong model! Great for sports betting.
+======================================================================
+
+
+December 20, 2025 - Hyperparameters from Kaggle dataset -- did not improve metrics, actually worsened them. 
+--------
+Loading Dataset...
+--------
+Total rows: 104,209
+Date range: 2021-11-07 to 2025-12-20
+Rows after dropping missing: 104,173 (100.0%)
+Total features: 73
+  Base features: 15
+  Team features: 58
+
+Target (PTS) statistics:
+  Mean:   11.04
+  Median: 9.00
+  Std:    8.89
+  Min:    0
+  Max:    73
+
+Dataset split:
+  Training rows: 83,338 (up to 2025-01-20)
+  Testing rows:  20,835 (from 2025-01-20)
+--------
+Training XGBoost model...
+
+Hyperparameters:
+  n_estimators:     200
+  learning_rate:    0.05
+  max_depth:        17
+  min_child_weight: 1.0
+  subsample:        0.8
+  colsample_bytree: 0.6655392754230048
+
+Training...
+Training complete!
+
+======================================================================
+MODEL ACCURACY RESULTS
+======================================================================
+
+
+
+[1] MAE (Mean Absolute Error) — MOST IMPORTANT
+----------------------------------------------------------------------
+Test MAE: 4.84 points
+
+What this means:
+  - On average, predictions are off by 4.84 points
+  - Example: Predict 25 pts, actual could be 20.2 to 29.8
+
+Rating: VERY GOOD
+Effective Accuracy: ~88–92% accurate
+Verdict: Strong model! Great for sports betting.
+
+[2] RMSE (Root Mean Squared Error)
+----------------------------------------------------------------------
+Test RMSE: 6.30 points
+
+What this means:
+  - Average prediction error, but large mistakes are penalized more heavily
+  - Measured in the same units as the target variable (points)
+  - Sensitive to outliers (big misses hurt the score more)
+  - RMSE / MAE ratio: 1.30
+  - Warning: Some predictions are significantly off
+
+[3] R² Score (How Much Variance Is Explained)
+----------------------------------------------------------------------
+Test R²: 0.496
+
+What this means:
+  - Model explains 49.6% of why points vary
+  - Remaining 50.4% is due to unpredictable factors
+    (injuries, hot/cold streaks, coaching decisions, etc.)
+  - Weak! Model struggles to predict accurately
+
+[4] Prediction Accuracy Breakdown
+----------------------------------------------------------------------
+Predictions within ±3 points:  39.6%
+Predictions within ±5 points:  61.5%
+Predictions within ±10 points: 89.8%
+
+What this means for betting:
+  - EXCELLENT: Most predictions are very close to actual outcomes
+
+Saving model...
+[SAVED] Model: C:\Users\arryl\OneDrive\Desktop\sharpeye.ai-\backend\models\xgb_points_model_defaultParams.pkl
+[SAVED] Features: C:\Users\arryl\OneDrive\Desktop\sharpeye.ai-\backend\models\feature_cols_default.pkl
+[SAVED] Metadata: C:\Users\arryl\OneDrive\Desktop\sharpeye.ai-\backend\models\model_metadata_default.pkl
+
+======================================================================
+FINAL SUMMARY - DEFAULT PARAMETERS
+======================================================================
+
+Test MAE:        4.84 points
+Accuracy Rating: VERY GOOD
+Within ±5 pts:   61.5%
+R² Score:        0.496
+
+Verdict: Strong model! Great for sports betting.
+====================================================================== 
