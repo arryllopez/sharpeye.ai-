@@ -74,4 +74,4 @@ out_cols = [
 
 df[out_cols].to_csv(OUT_PATH, index=False)
 
-print(f"[OK] Team defense rolling features written → {OUT_PATH}")
+print(f"[OK] Team defense rolling features written to {OUT_PATH}")
