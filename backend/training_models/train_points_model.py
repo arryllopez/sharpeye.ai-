@@ -71,11 +71,6 @@ base_features = [
     'DEF_PTS_ALLOWED_L5',
     'DEF_3PT_ALLOWED_L5',
     'DEF_3PT_PCT_L5',
-    
-    #adding the newly added features - dec 27
-    'IS_BACK_TO_BACK',
-    'DAYS_REST',
-    'PTS_L3'
 ]
 
 #removing rows with no features (early season games) 
@@ -132,7 +127,7 @@ print("Training XGBoost model...")
 model = xgb.XGBRegressor(
     n_estimators=200,          # Build 200 trees
     learning_rate=0.05,        # Each tree contributes 5%
-    max_depth=5,               # Trees can split 5 levfels deep
+    max_depth=5,               # Trees can split 5 levels deep
     min_child_weight=3,        # Min 3 samples per leaf
     subsample=0.8,             # Use 80% of data per tree
     colsample_bytree=0.8,      # Use 80% of features per tree
