@@ -1,347 +1,438 @@
-#imports
+"""
+Cross-validation training script for NBA player points prediction.
+Tests model stability across different seasons using expanding window validation.
+"""
 
 import pandas as pd
-import numpy as np 
+import numpy as np
 import xgboost as xgb
-#training metrics 
-from sklearn.metrics import ( 
-    mean_absolute_error,
-    #need to use root mean squared error
-    root_mean_squared_error, 
-    mean_squared_error,
-    r2_score,
-)
-
-import pickle 
-
-#handling file paths
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
+import pickle
 from pathlib import Path
 
-#define file paths
-BASE_DIR = Path(__file__).resolve().parents[1]  # backend/
+# ============================
+# CONFIG
+# ============================
+BASE_DIR = Path(__file__).resolve().parents[1]
 DATASET_PATH = BASE_DIR / "data" / "processed" / "model_dataset.csv"
-#output model path
-MODELS_DIR = BASE_DIR / "models"       
-MODELS_DIR.mkdir(parents = True, exist_ok=True) 
+MODELS_DIR = BASE_DIR / "models"
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-#using 80% of the dataset for training and 20% for testing
-TRAIN_SPLIT = 0.8
+# ============================
+# LOAD DATA
+# ============================
+print("=" * 70)
+print("CROSS-VALIDATION TRAINING - NBA PLAYER POINTS")
+print("=" * 70)
+print("\nLoading dataset...")
 
-print ("--------")
-print ("Loading Dataset...") 
-print ("--------") 
-
-#load dataset into a pandas dataframe
-#parse_dates will convert game date column into datetime objects
 df = pd.read_csv(DATASET_PATH, parse_dates=["GAME_DATE"])
-
-#sorting by date oldest-latest 
 df = df.sort_values(by="GAME_DATE").reset_index(drop=True)
 
-# Display basic info about the dataset
-print(f"Total rows: {len(df):,}")  # :, adds comma separators (103,836)
+print(f"Total rows: {len(df):,}")
 print(f"Date range: {df['GAME_DATE'].min().date()} to {df['GAME_DATE'].max().date()}")
 
-#include the features for training
-base_features = [  
-    #adding the new features
-    # context
+# ============================
+# FEATURES
+# ============================
+base_features = [
     'IS_HOME',
-
-    # scoring trends
-    'PTS_L5',
-    'PTS_L10',
-    'PTS_STD_L10',
-
-    # minutes / role
-    'MIN_L5',
-    'PTS_PER_MIN_L5',
-
-    # usage & volume
-    'USAGE_L5',
-    'FGA_L5',
-    'FG3A_L5',
-
-    # peripherals (stability indicators)
-    'REB_L5',
-    'AST_L5',
-    'FG3M_L5',
-
-    # defense
-    'DEF_PTS_ALLOWED_L5',
-    'DEF_3PT_ALLOWED_L5',
-    'DEF_3PT_PCT_L5',
-    
-    #adding the newly added features - dec 27
-    'IS_BACK_TO_BACK',
-    'DAYS_REST',
-    'PTS_L3'
+    'PTS_L5', 'PTS_L10', 'PTS_STD_L10',
+    'MIN_L5', 'PTS_PER_MIN_L5',
+    'USAGE_L5', 'FGA_L5', 'FG3A_L5',
+    'REB_L5', 'AST_L5', 'FG3M_L5',
+    'REST_DAYS',
+    'DEF_PTS_ALLOWED_L5', 'DEF_3PT_ALLOWED_L5', 'DEF_3PT_PCT_L5',
+    'DEF_PTS_VS_POSITION_L5', 'DEF_PTS_VS_POSITION_L10',
+    'PLAYER_TEAM_PACE_L5', 'PLAYER_TEAM_PACE_L10',
+    'OPP_PACE_L5', 'OPP_PACE_L10',
+    'EXPECTED_GAME_PACE_L5', 'EXPECTED_GAME_PACE_L10',
+    'EXPECTED_POSSESSIONS_L5', 'EXPECTED_POSSESSIONS_L10',
 ]
 
-#removing rows with no features (early season games) 
+# Remove missing values
 df_clean = df.dropna(subset=base_features)
 print(f"Rows after dropping missing: {len(df_clean):,} ({len(df_clean)/len(df)*100:.1f}%)")
 
-#one-hot encoding categorical variables
+# One-hot encode
 df_encoded = pd.get_dummies(
-    df_clean,                                         # Input dataframe
-    columns=['TEAM_ABBREVIATION', 'OPP_TEAM_NAME'],  # Columns to encode
-    drop_first=True                                   # Drop first category to avoid redundancy
-    # drop_first=True prevents "dummy variable trap" where columns are perfectly correlated
+    df_clean,
+    columns=['TEAM_ABBREVIATION', 'OPP_TEAM_NAME'],
+    drop_first=True
 )
 
-team_cols = [col for col in df_encoded.columns 
+team_cols = [col for col in df_encoded.columns
              if col.startswith('TEAM_ABBREVIATION_') or col.startswith('OPP_TEAM_NAME_')]
-
 
 feature_cols = base_features + team_cols
 
-print(f"Total features: {len(feature_cols)}")
+print(f"\nTotal features: {len(feature_cols)}")
 print(f"  Base features: {len(base_features)}")
 print(f"  Team features: {len(team_cols)}")
 
-x = df_encoded[feature_cols]
-y = df_encoded['PTS']
-
-#displaying dataset statistics
-print(f"\nTarget (PTS) statistics:")
-print(f"  Mean:   {y.mean():.2f}")       # Average points scored
-print(f"  Median: {y.median():.2f}")     # Middle value
-print(f"  Std:    {y.std():.2f}")        # Standard deviation (spread)
-print(f"  Min:    {y.min()}")            # Lowest points in dataset
-print(f"  Max:    {y.max()}")            # Highest points in dataset
-
-#splitting dataset into training and testing sets
-
-split_idx = int(len(x) * TRAIN_SPLIT ) #calcuialting splitn at 80%  mark of dataset
-split_date = df_encoded.iloc[split_idx]['GAME_DATE'] #what date does the split occur
-
-x_train = x.iloc[:split_idx] 
-x_test = x.iloc[split_idx:]
-y_train = y.iloc[:split_idx]
-y_test = y.iloc[split_idx:]
-
-print("\nDataset split:")
-print(f"  Training rows: {len(x_train):,} (up to {split_date.date()})")
-print(f"  Testing rows:  {len(x_test):,} (from {split_date.date()})")
-print("--------")
-
-#training the XGBoost model
-print("Training XGBoost model...")
-#initialize the modela nd specify hyperparameters, standard version
-model = xgb.XGBRegressor(
-    n_estimators=200,          # Build 200 trees
-    learning_rate=0.05,        # Each tree contributes 5%
-    max_depth=5,               # Trees can split 5 levfels deep
-    min_child_weight=3,        # Min 3 samples per leaf
-    subsample=0.8,             # Use 80% of data per tree
-    colsample_bytree=0.8,      # Use 80% of features per tree
-    random_state=42,
-    objective='reg:squarederror',
-    n_jobs=-1
-)
-
-print("\nHyperparameters:")
-print(f"  n_estimators:     {model.n_estimators}")
-print(f"  learning_rate:    {model.learning_rate}")
-print(f"  max_depth:        {model.max_depth}")
-print(f"  min_child_weight: {model.min_child_weight}")
-print(f"  subsample:        {model.subsample}")
-print(f"  colsample_bytree: {model.colsample_bytree}")
-
-#commence training
-print("\nTraining...")
-model.fit(x_train, y_train, verbose=False)
-print("Training complete!")
-
-#make predicitons on training and testing sets
-y_train_pred = model.predict(x_train)
-y_test_pred = model.predict(x_test)
-
-#model evaluation metrics
-train_mae = mean_absolute_error(y_train, y_train_pred)
-train_rmse = root_mean_squared_error(y_train, y_train_pred)
-train_r2 = r2_score(y_train, y_train_pred)
-
-test_mae = mean_absolute_error(y_test, y_test_pred)
-test_rmse = root_mean_squared_error(y_test, y_test_pred)
-test_r2 = r2_score(y_test, y_test_pred)
-
-#display training and testing metrics adn i used claudeAI to translat eand format what each metric means
+# ============================
+# CROSS-VALIDATION SPLITS
+# ============================
 print("\n" + "=" * 70)
-print("MODEL ACCURACY RESULTS")
+print("EXPANDING WINDOW CROSS-VALIDATION")
 print("=" * 70)
 
-# --------------------------------------------------
-# [1] MAE
-# --------------------------------------------------
-print("\n[1] MAE (Mean Absolute Error) — MOST IMPORTANT")
-print("-" * 70)
-print(f"Test MAE: {test_mae:.2f} points")
+# Define season boundaries (approximate)
+cv_splits = [
+    {
+        'name': 'Train: 2021-2023 | Test: 2023-2024',
+        'train_end': '2023-10-01',
+        'test_start': '2023-10-01',
+        'test_end': '2024-10-01',
+    },
+    {
+        'name': 'Train: 2021-2024 | Test: 2024-2025',
+        'train_end': '2024-10-01',
+        'test_start': '2024-10-01',
+        'test_end': '2025-10-01',
+    },
+    {
+        'name': 'Train: 2021-2025 | Test: 2025-2026',
+        'train_end': '2025-10-01',
+        'test_start': '2025-10-01',
+        'test_end': '2026-10-01',
+    },
+]
 
-print("\nWhat this means:")
-print(f"  - On average, predictions are off by {test_mae:.2f} points")
-print(f"  - Example: Predict 25 pts, actual could be {25-test_mae:.1f} to {25+test_mae:.1f}")
-
-if test_mae < 4.5:
-    accuracy_rating = "EXCELLENT"
-    accuracy_percent = "~92–95%"
-    verdict = "Elite model! Predictions are highly reliable."
-elif test_mae < 5.5:
-    accuracy_rating = "VERY GOOD"
-    accuracy_percent = "~88–92%"
-    verdict = "Strong model! Great for sports betting."
-elif test_mae < 6.5:
-    accuracy_rating = "GOOD"
-    accuracy_percent = "~85–88%"
-    verdict = "Solid model! Usable for betting."
-elif test_mae < 8.0:
-    accuracy_rating = "OKAY"
-    accuracy_percent = "~80–85%"
-    verdict = "Decent but needs improvement."
-else:
-    accuracy_rating = "NEEDS WORK"
-    accuracy_percent = "~75–80%"
-    verdict = "Add more features or tune parameters."
-
-print(f"\nRating: {accuracy_rating}")
-print(f"Effective Accuracy: {accuracy_percent} accurate")
-print(f"Verdict: {verdict}")
-
-# --------------------------------------------------
-# [2] RMSE
-# --------------------------------------------------
-print("\n[2] RMSE (Root Mean Squared Error)")
-print("-" * 70)
-print(f"Test RMSE: {test_rmse:.2f} points")
-
-print("\nWhat this means:")
-print("  - Average prediction error, but large mistakes are penalized more heavily")
-print("  - Measured in the same units as the target variable (points)")
-print("  - Sensitive to outliers (big misses hurt the score more)")
-
-rmse_mae_ratio = test_rmse / test_mae
-print(f"  - RMSE / MAE ratio: {rmse_mae_ratio:.2f}")
-
-if rmse_mae_ratio < 1.3:
-    print("  - Good! Errors are consistent (no wild predictions)")
-else:
-    print("  - Warning: Some predictions are significantly off")
-
-# --------------------------------------------------
-# [3] R²
-# --------------------------------------------------
-print("\n[3] R² Score (How Much Variance Is Explained)")
-print("-" * 70)
-print(f"Test R²: {test_r2:.3f}")
-
-print("\nWhat this means:")
-r2_percent = test_r2 * 100
-print(f"  - Model explains {r2_percent:.1f}% of why points vary")
-print(f"  - Remaining {100 - r2_percent:.1f}% is due to unpredictable factors")
-print("    (injuries, hot/cold streaks, coaching decisions, etc.)")
-
-if test_r2 > 0.75:
-    print("  - Excellent! Very predictive model")
-elif test_r2 > 0.65:
-    print("  - Good! Strong predictive power")
-elif test_r2 > 0.50:
-    print("  - Okay! Moderate predictive power")
-else:
-    print("  - Weak! Model struggles to predict accurately")
-
-# --------------------------------------------------
-# [4] Prediction Accuracy Breakdown
-# --------------------------------------------------
-print("\n[4] Prediction Accuracy Breakdown")
-print("-" * 70)
-
-residuals = y_test - y_test_pred
-within_3 = (abs(residuals) <= 3).mean() * 100
-within_5 = (abs(residuals) <= 5).mean() * 100
-within_10 = (abs(residuals) <= 10).mean() * 100
-
-print(f"Predictions within ±3 points:  {within_3:.1f}%")
-print(f"Predictions within ±5 points:  {within_5:.1f}%")
-print(f"Predictions within ±10 points: {within_10:.1f}%")
-
-print("\nWhat this means for betting:")
-if within_5 > 60:
-    print("  - EXCELLENT: Most predictions are very close to actual outcomes")
-elif within_5 > 50:
-    print("  - GOOD: Predictions are generally reliable for betting")
-else:
-    print("  - FAIR: Use with caution for betting")
-
-
-#save the trained model
-print ("\nSaving model...")
-
-model_path = MODELS_DIR / "xgb_points_model_defaultParams.pkl"
-with open(model_path, 'wb') as f:
-    pickle.dump(model, f)
-print(f"[SAVED] Model: {model_path}")
-
-features_path = MODELS_DIR / 'feature_cols_default.pkl'
-with open(features_path, 'wb') as f:
-    pickle.dump(feature_cols, f)
-print(f"[SAVED] Features: {features_path}")
-
-metadata = {
-    'version': 'default',
-    'test_mae': test_mae,
-    'test_rmse': test_rmse,
-    'test_r2': test_r2,
-    'within_5_points': within_5,
-    'train_size': len(x_train),
-    'test_size': len(x_test),
-    'split_date': str(split_date.date()),
-    'n_features': len(feature_cols),
-    'hyperparameters': {
-        'n_estimators': 200,
-        'learning_rate': 0.05,
-        'max_depth': 5,
-        'min_child_weight': 3,
-        'subsample': 0.8,
-        'colsample_bytree': 0.8
-    }
+# Hyperparameters
+model_params = {
+    'n_estimators': 200,
+    'learning_rate': 0.05,
+    'max_depth': 5,
+    'min_child_weight': 3,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'random_state': 42,
+    'objective': 'reg:squarederror',
+    'n_jobs': -1
 }
 
-metadata_path = MODELS_DIR / 'model_metadata_default.pkl'
-with open(metadata_path, 'wb') as f:
-    pickle.dump(metadata, f)
-print(f"[SAVED] Metadata: {metadata_path}")
+# Store results
+cv_results = []
+
+# ============================
+# RUN CROSS-VALIDATION
+# ============================
+for i, split in enumerate(cv_splits, 1):
+    print(f"\n{'=' * 70}")
+    print(f"FOLD {i}: {split['name']}")
+    print("=" * 70)
+
+    # Create train/test masks
+    train_mask = df_encoded['GAME_DATE'] < split['train_end']
+    test_mask = (df_encoded['GAME_DATE'] >= split['test_start']) & (df_encoded['GAME_DATE'] < split['test_end'])
+
+    x_train = df_encoded.loc[train_mask, feature_cols]
+    y_train = df_encoded.loc[train_mask, 'PTS']
+    x_test = df_encoded.loc[test_mask, feature_cols]
+    y_test = df_encoded.loc[test_mask, 'PTS']
+
+    print(f"\nTraining rows:  {len(x_train):,}")
+    print(f"Testing rows:   {len(x_test):,}")
+
+    if len(x_test) == 0:
+        print("⚠️  No test data available for this split, skipping...")
+        continue
+
+    # Train model
+    print("\nTraining XGBoost model...")
+    model = xgb.XGBRegressor(**model_params)
+    model.fit(x_train, y_train, verbose=False)
+
+    # Predict
+    y_train_pred = model.predict(x_train)
+    y_test_pred = model.predict(x_test)
+
+    # Evaluate
+    train_mae = mean_absolute_error(y_train, y_train_pred)
+    train_rmse = root_mean_squared_error(y_train, y_train_pred)
+    train_r2 = r2_score(y_train, y_train_pred)
+
+    test_mae = mean_absolute_error(y_test, y_test_pred)
+    test_rmse = root_mean_squared_error(y_test, y_test_pred)
+    test_r2 = r2_score(y_test, y_test_pred)
+
+    # Accuracy breakdown
+    residuals = y_test - y_test_pred
+    within_3 = (abs(residuals) <= 3).mean() * 100
+    within_5 = (abs(residuals) <= 5).mean() * 100
+    within_10 = (abs(residuals) <= 10).mean() * 100
+
+    # Display results
+    print(f"\n{'-' * 70}")
+    print("RESULTS")
+    print("-" * 70)
+    print(f"Train MAE:  {train_mae:.2f} points")
+    print(f"Test MAE:   {test_mae:.2f} points")
+    print(f"Test RMSE:  {test_rmse:.2f} points")
+    print(f"Test R²:    {test_r2:.3f}")
+    print(f"\nAccuracy Breakdown:")
+    print(f"  Within ±3 points:  {within_3:.1f}%")
+    print(f"  Within ±5 points:  {within_5:.1f}%")
+    print(f"  Within ±10 points: {within_10:.1f}%")
+
+    # Store results
+    cv_results.append({
+        'fold': i,
+        'name': split['name'],
+        'train_size': len(x_train),
+        'test_size': len(x_test),
+        'train_mae': train_mae,
+        'test_mae': test_mae,
+        'test_rmse': test_rmse,
+        'test_r2': test_r2,
+        'within_3': within_3,
+        'within_5': within_5,
+        'within_10': within_10,
+    })
 
 # ============================
 # SUMMARY
 # ============================
-print("\n" + "="*70)
-print("FINAL SUMMARY - DEFAULT PARAMETERS")
-print("="*70)
-print(f"\nTest MAE:        {test_mae:.2f} points")
-print(f"Accuracy Rating: {accuracy_rating}")
-print(f"Within ±5 pts:   {within_5:.1f}%")
-print(f"R² Score:        {test_r2:.3f}")
-print(f"\nVerdict: {verdict}")
-print("="*70 + "\n")
+print("\n" + "=" * 70)
+print("CROSS-VALIDATION SUMMARY")
+print("=" * 70)
 
-#using plots to display how well regression fitted
-import matplotlib.pyplot as plt
-# Use row index for x-axis
-row_idx = y_test.index  # original CSV row indices
+results_df = pd.DataFrame(cv_results)
 
-plt.figure(figsize=(12, 6))
+print("\nTest MAE by Fold:")
+for _, row in results_df.iterrows():
+    print(f"  Fold {row['fold']}: {row['test_mae']:.2f} points ({row['name']})")
 
-# Plot actual points as integers
-plt.scatter(row_idx, y_test.astype(int), color='green', alpha=0.6, label='Actual Points')
+print(f"\nMean Test MAE:    {results_df['test_mae'].mean():.2f} ± {results_df['test_mae'].std():.2f}")
+print(f"Mean Test RMSE:   {results_df['test_rmse'].mean():.2f} ± {results_df['test_rmse'].std():.2f}")
+print(f"Mean Test R²:     {results_df['test_r2'].mean():.3f} ± {results_df['test_r2'].std():.3f}")
+print(f"Mean Within ±5:   {results_df['within_5'].mean():.1f}% ± {results_df['within_5'].std():.1f}%")
 
-# Plot predicted points as floats
-plt.scatter(row_idx, y_test_pred, color='blue', alpha=0.6, label='Predicted Points')
+# ============================
+# MODEL STABILITY ASSESSMENT
+# ============================
+print("\n" + "=" * 70)
+print("MODEL STABILITY ASSESSMENT")
+print("=" * 70)
 
-plt.xlabel("Row Index in CSV / Game Order")
-plt.ylabel("Points")
-plt.title("Actual vs Predicted Points per Game (Row-level)")
-plt.legend()
-plt.grid(True)
+mae_std = results_df['test_mae'].std()
+mae_mean = results_df['test_mae'].mean()
+coefficient_of_variation = (mae_std / mae_mean) * 100
 
-plt.show()
+print(f"\nCoefficient of Variation: {coefficient_of_variation:.1f}%")
+
+if coefficient_of_variation < 5:
+    stability = "EXCELLENT - Very stable across seasons"
+elif coefficient_of_variation < 10:
+    stability = "GOOD - Stable performance"
+elif coefficient_of_variation < 15:
+    stability = "MODERATE - Some variation across seasons"
+else:
+    stability = "POOR - Unstable, may need feature engineering"
+
+print(f"Stability Rating: {stability}")
+
+# ============================
+# TRAIN FINAL MODEL ON ALL DATA
+# ============================
+print("\n" + "=" * 70)
+print("TRAINING FINAL MODEL ON ALL DATA")
+print("=" * 70)
+
+# Use 80/20 split on entire dataset
+TRAIN_SPLIT = 0.8
+x = df_encoded[feature_cols]
+y = df_encoded['PTS']
+
+split_idx = int(len(x) * TRAIN_SPLIT)
+split_date = df_encoded.iloc[split_idx]['GAME_DATE']
+
+x_train_final = x.iloc[:split_idx]
+x_test_final = x.iloc[split_idx:]
+y_train_final = y.iloc[:split_idx]
+y_test_final = y.iloc[split_idx:]
+
+print(f"\nTraining rows: {len(x_train_final):,} (up to {split_date.date()})")
+print(f"Testing rows:  {len(x_test_final):,} (from {split_date.date()})")
+
+final_model = xgb.XGBRegressor(**model_params)
+final_model.fit(x_train_final, y_train_final, verbose=False)
+
+y_test_final_pred = final_model.predict(x_test_final)
+final_mae = mean_absolute_error(y_test_final, y_test_final_pred)
+final_rmse = root_mean_squared_error(y_test_final, y_test_final_pred)
+final_r2 = r2_score(y_test_final, y_test_final_pred)
+
+residuals_final = y_test_final - y_test_final_pred
+within_5_final = (abs(residuals_final) <= 5).mean() * 100
+
+print(f"\nFinal Model Performance:")
+print(f"  Test MAE:       {final_mae:.2f} points")
+print(f"  Test RMSE:      {final_rmse:.2f} points")
+print(f"  Test R²:        {final_r2:.3f}")
+print(f"  Within ±5 pts:  {within_5_final:.1f}%")
+
+# ============================
+# FEATURE IMPORTANCE
+# ============================
+print("\n" + "=" * 70)
+print("FEATURE IMPORTANCE RANKING")
+print("=" * 70)
+
+# Get feature importances
+feature_importance = pd.DataFrame({
+    'feature': feature_cols,
+    'importance': final_model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+# Add rank column
+feature_importance['rank'] = range(1, len(feature_importance) + 1)
+
+# Display top 20 features
+print("\nTop 20 Most Important Features:")
+print("-" * 70)
+for idx, row in feature_importance.head(20).iterrows():
+    print(f"  #{row['rank']:3d}  {row['feature']:40s} {row['importance']:.4f}")
+
+# Check pace features specifically
+print("\n" + "-" * 70)
+print("Pace & Possessions Features:")
+print("-" * 70)
+pace_features = feature_importance[
+    feature_importance['feature'].str.contains('PACE|POSSESS', case=False, na=False)
+]
+if not pace_features.empty:
+    for idx, row in pace_features.iterrows():
+        print(f"  #{row['rank']:3d}  {row['feature']:40s} {row['importance']:.4f}")
+else:
+    print("  No pace/possession features found")
+
+# Check positional defense features
+print("\n" + "-" * 70)
+print("Positional Defense Features:")
+print("-" * 70)
+pos_features = feature_importance[
+    feature_importance['feature'].str.contains('POSITION|PTS_VS', case=False, na=False)
+]
+if not pos_features.empty:
+    for idx, row in pos_features.iterrows():
+        print(f"  #{row['rank']:3d}  {row['feature']:40s} {row['importance']:.4f}")
+else:
+    print("  No positional defense features found")
+
+# Save full feature importance ranking
+feature_importance_path = MODELS_DIR / 'feature_importance.csv'
+feature_importance.to_csv(feature_importance_path, index=False)
+print(f"\n[SAVED] Full feature ranking: {feature_importance_path}")
+print(f"  Total features: {len(feature_importance)}")
+print("-" * 70)
+
+
+# ============================
+# SAVE MODEL & RESULTS
+# ============================
+print("\n" + "=" * 70)
+print("SAVING MODEL & RESULTS")
+print("=" * 70)
+
+# Calculate residual statistics for Monte Carlo simulations
+residuals_std = np.std(residuals_final)
+residuals_mean = np.mean(residuals_final)
+
+# Percentiles for prediction intervals
+p5 = np.percentile(residuals_final, 5)
+p95 = np.percentile(residuals_final, 95)
+p10 = np.percentile(residuals_final, 10)
+p90 = np.percentile(residuals_final, 90)
+
+# Save final model (using standard naming for production)
+model_path = MODELS_DIR / "xgb_points_model.pkl"
+with open(model_path, 'wb') as f:
+    pickle.dump(final_model, f)
+print(f"[SAVED] Model: {model_path}")
+
+# Save features
+features_path = MODELS_DIR / 'feature_cols.pkl'
+with open(features_path, 'wb') as f:
+    pickle.dump(feature_cols, f)
+print(f"[SAVED] Features: {features_path}")
+
+# Save metadata with CV results AND Monte Carlo parameters
+metadata = {
+    'version': 'cross_validated',
+    'trained_date': str(pd.Timestamp.now()),
+
+    # Final model performance
+    'final_test_mae': final_mae,
+    'final_test_rmse': final_rmse,
+    'final_test_r2': final_r2,
+    'final_within_5_points': within_5_final,
+    'train_size': len(x_train_final),
+    'test_size': len(x_test_final),
+    'split_date': str(split_date.date()),
+    'n_features': len(feature_cols),
+    'hyperparameters': model_params,
+
+    # Cross-validation results
+    'cv_mean_mae': results_df['test_mae'].mean(),
+    'cv_std_mae': results_df['test_mae'].std(),
+    'cv_mean_r2': results_df['test_r2'].mean(),
+    'cv_coefficient_of_variation': coefficient_of_variation,
+    'cv_results': cv_results,
+
+    # Monte Carlo simulation parameters
+    'monte_carlo': {
+        'residual_std': residuals_std,
+        'residual_mean': residuals_mean,
+        'prediction_interval_90': {
+            'lower_percentile': p5,
+            'upper_percentile': p95,
+        },
+        'prediction_interval_80': {
+            'lower_percentile': p10,
+            'upper_percentile': p90,
+        },
+        'recommended_std': final_rmse,  # Use RMSE as std for normal distribution
+        'note': 'Use residual_std or recommended_std for Monte Carlo simulations',
+    }
+}
+
+metadata_path = MODELS_DIR / 'model_metadata.pkl'
+with open(metadata_path, 'wb') as f:
+    pickle.dump(metadata, f)
+print(f"[SAVED] Metadata: {metadata_path}")
+
+# Save CV results as CSV for easy viewing
+cv_results_path = MODELS_DIR / 'cv_results.csv'
+results_df.to_csv(cv_results_path, index=False)
+print(f"[SAVED] CV Results: {cv_results_path}")
+
+print("\n" + "=" * 70)
+print("MONTE CARLO SIMULATION PARAMETERS")
+print("=" * 70)
+print(f"\nFor Monte Carlo simulations, use:")
+print(f"  Recommended Std Dev: {final_rmse:.2f} points (RMSE)")
+print(f"  Residual Std Dev:    {residuals_std:.2f} points")
+print(f"  Residual Mean:       {residuals_mean:.2f} points")
+print(f"\n90% Prediction Interval:")
+print(f"  Lower bound: {p5:.2f} points below prediction")
+print(f"  Upper bound: {p95:.2f} points above prediction")
+print(f"\n80% Prediction Interval:")
+print(f"  Lower bound: {p10:.2f} points below prediction")
+print(f"  Upper bound: {p90:.2f} points above prediction")
+
+print("\nExample Monte Carlo usage:")
+print("  prediction = model.predict(features)  # e.g., 25.3 points")
+print(f"  simulations = np.random.normal(prediction, {final_rmse:.2f}, 10000)")
+print("  prob_over_25_5 = (simulations > 25.5).mean()")
+
+print("\n" + "=" * 70)
+print("CROSS-VALIDATION COMPLETE")
+print("=" * 70)
+print(f"\nKey Takeaways:")
+print(f"  • Mean CV MAE: {results_df['test_mae'].mean():.2f} ± {results_df['test_mae'].std():.2f} points")
+print(f"  • Stability: {stability}")
+print(f"  • Final Model MAE: {final_mae:.2f} points")
+print(f"  • Monte Carlo Std: {final_rmse:.2f} points")
+print("=" * 70 + "\n")

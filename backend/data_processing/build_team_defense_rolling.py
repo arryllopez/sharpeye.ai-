@@ -56,6 +56,26 @@ df["DEF_PTS_ALLOWED_STD_L10"] = (
     .std()
 )
 
+# ===============================
+# PACE FEATURES
+# ===============================
+# Game pace = average possessions per game (average of both teams)
+# Rolling average gives us each team's typical pace
+
+df["TEAM_PACE_L5"] = (
+    grouped["GAME_PACE"]
+    .shift(1)
+    .rolling(5)
+    .mean()
+)
+
+df["TEAM_PACE_L10"] = (
+    grouped["GAME_PACE"]
+    .shift(1)
+    .rolling(10)
+    .mean()
+)
+
 
 # ===============================
 # SAVE OUTPUT
@@ -70,8 +90,10 @@ out_cols = [
     "DEF_3PT_ALLOWED_L5",
     "DEF_3PT_PCT_L5",
     "DEF_PTS_ALLOWED_STD_L10",
+    "TEAM_PACE_L5",
+    "TEAM_PACE_L10",
 ]
 
 df[out_cols].to_csv(OUT_PATH, index=False)
 
-print(f"[OK] Team defense rolling features written → {OUT_PATH}")
+print(f"[OK] Team defense rolling features written to {OUT_PATH}")

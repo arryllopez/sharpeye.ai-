@@ -34,7 +34,7 @@ def basic_statistics(df):
     print(f"Total rows:        {len(df):,}")
     print(f"Unique players:    {df['PLAYER_NAME'].nunique():,}")
     print(f"Unique teams:      {df['TEAM_ABBREVIATION'].nunique()}")
-    print(f"Date range:        {df['GAME_DATE'].min().date()} → {df['GAME_DATE'].max().date()}")
+    print(f"Date range:        {df['GAME_DATE'].min().date()} to {df['GAME_DATE'].max().date()}")
 
     games_per_player = df.groupby("PLAYER_ID").size()
     print("\nGames per player:")
@@ -211,7 +211,7 @@ def summary(df):
 
     print(f"Model-ready rows: {len(ready):,} / {len(df):,} ({len(ready)/len(df)*100:.1f}%)")
     print(f"Players covered:  {ready['PLAYER_ID'].nunique():,}")
-    print("\nDATASET IS MODEL-READY ✅")
+    print("\nDATASET IS MODEL-READY")
 
 # ============================
 # MAIN

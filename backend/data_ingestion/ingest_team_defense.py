@@ -62,7 +62,7 @@ def build_defensive_logs(df: pd.DataFrame, season: str) -> pd.DataFrame:
     df["GAME_DATE"] = pd.to_datetime(df["GAME_DATE"])
     df["SEASON"] = season
 
-    # Select stats we want from the opponent
+    # Select stats we want from the opponent (for defensive stats AND opponent possessions)
     opp = df[
         [
             "GAME_ID",
@@ -71,6 +71,10 @@ def build_defensive_logs(df: pd.DataFrame, season: str) -> pd.DataFrame:
             "PTS",
             "FG3M",
             "FG3A",
+            "FGA",
+            "FTA",
+            "OREB",
+            "TOV",
         ]
     ].rename(
         columns={
@@ -79,6 +83,10 @@ def build_defensive_logs(df: pd.DataFrame, season: str) -> pd.DataFrame:
             "PTS": "PTS_ALLOWED",
             "FG3M": "FG3_ALLOWED",
             "FG3A": "FG3A_ALLOWED",
+            "FGA": "OPP_FGA",
+            "FTA": "OPP_FTA",
+            "OREB": "OPP_OREB",
+            "TOV": "OPP_TOV",
         }
     )
 
@@ -93,8 +101,27 @@ def build_defensive_logs(df: pd.DataFrame, season: str) -> pd.DataFrame:
     merged = merged[merged["TEAM_ID"] != merged["OPP_TEAM_ID"]]
 
     merged["OPP_FG3_PCT"] = (
-        merged["FG3_ALLOWED"] / merged["FG3A_ALLOWED"].replace(0,pd.NA) 
+        merged["FG3_ALLOWED"] / merged["FG3A_ALLOWED"].replace(0,pd.NA)
     )
+
+    # Calculate possessions for BOTH teams
+    # Formula: Possessions ≈ FGA + 0.44 × FTA - OREB + TOV
+    merged["TEAM_POSSESSIONS"] = (
+        merged["FGA"] +
+        0.44 * merged["FTA"] -
+        merged["OREB"] +
+        merged["TOV"]
+    )
+
+    merged["OPP_POSSESSIONS"] = (
+        merged["OPP_FGA"] +
+        0.44 * merged["OPP_FTA"] -
+        merged["OPP_OREB"] +
+        merged["OPP_TOV"]
+    )
+
+    # Game pace = average of both teams' possessions (more accurate than single team)
+    merged["GAME_PACE"] = (merged["TEAM_POSSESSIONS"] + merged["OPP_POSSESSIONS"]) / 2.0
 
     final = merged[
         [
@@ -108,6 +135,7 @@ def build_defensive_logs(df: pd.DataFrame, season: str) -> pd.DataFrame:
             "FG3_ALLOWED",
             "FG3A_ALLOWED",
             "OPP_FG3_PCT",
+            "GAME_PACE",
         ]
     ].copy()
 
