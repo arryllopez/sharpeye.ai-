@@ -31,6 +31,7 @@ df["PTS_L5"] = group["PTS"].shift(1).rolling(5).mean()
 df["PTS_L10"] = group["PTS"].shift(1).rolling(10).mean()
 #minutes played feature
 df["MIN_L5"] = group["MIN"].shift(1).rolling(5).mean()
+df["MIN_L10"] = group["MIN"].shift(1).rolling(10).mean()
 #addding these features for potential future use
 df["REB_L5"] = group["REB"].shift(1).rolling(5).mean()
 df["AST_L5"] = group["AST"].shift(1).rolling(5).mean()
@@ -58,9 +59,13 @@ df["PTS_STD_L10"] = (
     .std()
 )
 
-
-# Optional expansion later:
-# df["FG3A_L5"] = group["FG3A"].shift(1).rolling(5).mean()
+# Rest Days - days since last game (fatigue indicator)
+df["REST_DAYS"] = (
+    group["GAME_DATE"]
+    .diff()
+    .dt.days
+    .fillna(2)  #first game of season 
+)
 
 # -----------------------------
 # Drop rows without enough history
@@ -69,6 +74,7 @@ df = df.dropna(subset=[
     "PTS_L5",
     "PTS_L10",
     "MIN_L5",
+    "MIN_L10",
     "REB_L5",
     "AST_L5",
     "FG3M_L5",

@@ -41,7 +41,13 @@ base_features = [
     'MIN_L5', 'PTS_PER_MIN_L5',
     'USAGE_L5', 'FGA_L5', 'FG3A_L5',
     'REB_L5', 'AST_L5', 'FG3M_L5',
+    'REST_DAYS',
     'DEF_PTS_ALLOWED_L5', 'DEF_3PT_ALLOWED_L5', 'DEF_3PT_PCT_L5',
+    'DEF_PTS_VS_POSITION_L5', 'DEF_PTS_VS_POSITION_L10',
+    'PLAYER_TEAM_PACE_L5', 'PLAYER_TEAM_PACE_L10',
+    'OPP_PACE_L5', 'OPP_PACE_L10',
+    'EXPECTED_GAME_PACE_L5', 'EXPECTED_GAME_PACE_L10',
+    'EXPECTED_POSSESSIONS_L5', 'EXPECTED_POSSESSIONS_L10',
 ]
 
 # Remove missing values
@@ -266,6 +272,62 @@ print(f"  Test MAE:       {final_mae:.2f} points")
 print(f"  Test RMSE:      {final_rmse:.2f} points")
 print(f"  Test R²:        {final_r2:.3f}")
 print(f"  Within ±5 pts:  {within_5_final:.1f}%")
+
+# ============================
+# FEATURE IMPORTANCE
+# ============================
+print("\n" + "=" * 70)
+print("FEATURE IMPORTANCE RANKING")
+print("=" * 70)
+
+# Get feature importances
+feature_importance = pd.DataFrame({
+    'feature': feature_cols,
+    'importance': final_model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+# Add rank column
+feature_importance['rank'] = range(1, len(feature_importance) + 1)
+
+# Display top 20 features
+print("\nTop 20 Most Important Features:")
+print("-" * 70)
+for idx, row in feature_importance.head(20).iterrows():
+    print(f"  #{row['rank']:3d}  {row['feature']:40s} {row['importance']:.4f}")
+
+# Check pace features specifically
+print("\n" + "-" * 70)
+print("Pace & Possessions Features:")
+print("-" * 70)
+pace_features = feature_importance[
+    feature_importance['feature'].str.contains('PACE|POSSESS', case=False, na=False)
+]
+if not pace_features.empty:
+    for idx, row in pace_features.iterrows():
+        print(f"  #{row['rank']:3d}  {row['feature']:40s} {row['importance']:.4f}")
+else:
+    print("  No pace/possession features found")
+
+# Check positional defense features
+print("\n" + "-" * 70)
+print("Positional Defense Features:")
+print("-" * 70)
+pos_features = feature_importance[
+    feature_importance['feature'].str.contains('POSITION|PTS_VS', case=False, na=False)
+]
+if not pos_features.empty:
+    for idx, row in pos_features.iterrows():
+        print(f"  #{row['rank']:3d}  {row['feature']:40s} {row['importance']:.4f}")
+else:
+    print("  No positional defense features found")
+
+# Save full feature importance ranking
+feature_importance_path = MODELS_DIR / 'feature_importance.csv'
+feature_importance.to_csv(feature_importance_path, index=False)
+print(f"\n[SAVED] Full feature ranking: {feature_importance_path}")
+print(f"  Total features: {len(feature_importance)}")
+print("-" * 70)
+
 
 # ============================
 # SAVE MODEL & RESULTS
