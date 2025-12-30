@@ -1,7 +1,7 @@
 """
 Smart Player Points Prediction Script
 Automatically calculates rolling features from game logs
-Includes: Pace features, Positional defense, Team features
+Includes: Pace features, Positional defense, Team features, Monte Carlo simulation
 """
 
 import pickle
@@ -9,6 +9,11 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from datetime import datetime
+import sys
+
+# Add app directory to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from app.core.monte_carlo import MonteCarloSimulator
 
 # Team mapping
 TEAM_ABBR_TO_NAME = {
@@ -56,6 +61,22 @@ player_name = input("\nPlayer Name: ")
 opponent_team = input("Opponent Team (full name, e.g., Los Angeles Lakers): ")
 is_home = input("Home game for player? (yes/no): ").lower()
 game_date_str = input("Game Date (YYYY-MM-DD, or press Enter for today): ").strip()
+
+# Monte Carlo inputs
+print("\n" + "-" * 80)
+print("BETTING LINE (Optional - for Monte Carlo analysis)")
+print("-" * 80)
+prop_line_str = input("Points prop line (e.g., 25.5, or press Enter to skip): ").strip()
+prop_line = float(prop_line_str) if prop_line_str else None
+
+if prop_line:
+    over_odds_str = input("Over odds (e.g., -110, or press Enter for -110): ").strip()
+    under_odds_str = input("Under odds (e.g., -110, or press Enter for -110): ").strip()
+    over_odds = int(over_odds_str) if over_odds_str else -110
+    under_odds = int(under_odds_str) if under_odds_str else -110
+else:
+    over_odds = -110
+    under_odds = -110
 
 # Parse game date
 if not game_date_str:
@@ -376,7 +397,43 @@ print(f"  Player stats: {pts_l5:.1f} PPG, {min_l5:.1f} MPG, {usage_l5:.1f} usage
 print(f"  Pace features: {expected_possessions_l5:.1f} possessions")
 print(f"  Positional defense: {def_pts_vs_position_l5:.1f} PPG vs {player_position}s")
 
-print("\n" + "=" * 80 + "\n")
-print("Thanks for using SharpEye.AI!")
-print("\nNote: This prediction uses the locked production model with pace features.")
-print(f"Model validated across {metadata['test_size']:,} games with {metadata['cv_mean_mae']:.2f} MAE.")
+# ============================
+# MONTE CARLO SIMULATION
+# ============================
+if prop_line:
+    print("\n" + "=" * 80)
+    print("MONTE CARLO SIMULATION - BETTING ANALYSIS")
+    print("=" * 80)
+
+    # Initialize simulator
+    simulator = MonteCarloSimulator(n_simulations=10000)
+
+    # Get residual standard deviation from metadata
+    residual_std = metadata['monte_carlo']['recommended_std']
+
+    # Run simulation
+    mc_result = simulator.simulate_prop(
+        predicted_value=predicted_points,
+        residual_std=residual_std,
+        prop_line=prop_line,
+        over_odds=over_odds,
+        under_odds=under_odds
+    )
+
+    print(f"\n{'='*80}")
+    print(f"PROP LINE: {prop_line:.1f} points")
+    print(f"{'='*80}")
+
+    print(f"\nSimulation Results (10,000 iterations):")
+    print(f"  Mean outcome:     {mc_result.mean:.1f} points")
+    print(f"  Std deviation:    {mc_result.std:.1f} points")
+
+    print(f"\n{'-'*80}")
+    print(f"PROBABILITIES")
+    print(f"{'-'*80}")
+    print(f"  OVER {prop_line:.1f}:   {mc_result.probability_over*100:5.1f}%  (odds: {over_odds:+d})")
+    print(f"  UNDER {prop_line:.1f}:  {mc_result.probability_under*100:5.1f}%  (odds: {under_odds:+d})")
+
+    
+if prop_line:
+    print(f"Monte Carlo simulation run with {simulator.n_simulations:,} iterations.")
