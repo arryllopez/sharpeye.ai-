@@ -1,15 +1,11 @@
 from __future__ import annotations
 from typing import Any, Dict, Optional
 import httpx
+import logging 
 
+logger = logging.getLogger(__name__)
 class TheOddsApiClient:
-    """
-    Minimal client for The Odds API (v4).
-    We'll use:
-      - GET /v4/sports/{sport}/events
-      - GET /v4/sports/{sport}/events/{eventId}/odds
-    """
-
+   
     def __init__(self, base_url: str, api_key: str, timeout_s: float = 15.0):
         if not api_key:
             raise ValueError("THEODDS_API_KEY is missing. Set it in your environment.")
@@ -25,5 +21,17 @@ class TheOddsApiClient:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             r = await client.get(url, params=params)
             r.raise_for_status()
-            return r.json()
-  
+
+            # Get JSON data before context closes
+            data = r.json()
+
+            # Log quota usage from headers
+            remaining = r.headers.get("x-requests-remaining", "unknown")
+            used = r.headers.get("x-requests-used", "unknown")
+            last = r.headers.get("x-requests-last", "unknown")
+            logger.info(
+                "TheOdds API quota - Remaining: %s, Used: %s, Last request cost: %s",
+                remaining, used, last
+            )
+
+            return data
