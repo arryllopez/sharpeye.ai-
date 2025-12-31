@@ -1,7 +1,9 @@
-from typing import List, Set, Dict
+from typing import List, Optional, Dict
 from dataclasses import dataclass
 import hashlib
 import re
+from datetime import datetime
+import pytz
 
 from app.core.config import settings
 from app.betData.providers.theodds_client import TheOddsApiClient
@@ -19,8 +21,8 @@ class GameDTO:
 class BookmakerOdds:
     bookmaker_key: str
     bookmaker_name: str
-    over_odds: int
-    under_odds: int
+    over_odds: Optional[int] #if odds are not available , set to none
+    under_odds: Optional[int] 
 
 @dataclass
 class PlayerDTO:
@@ -28,6 +30,7 @@ class PlayerDTO:
     name: str
     prop_line: float
     bookmakers: List['BookmakerOdds'] 
+    data_as_of : str #timestamp when data was fetched 
 
 
 
@@ -116,17 +119,20 @@ class TheOddsNbaProvider:
                         BookmakerOdds(
                             bookmaker_key=bookmaker_key,
                             bookmaker_name=bookmaker_name,
-                            over_odds=odds_data["over_odds"] or -110,
-                            under_odds=odds_data["under_odds"] or -110
+                            over_odds=odds_data["over_odds"],
+                            under_odds=odds_data["under_odds"]
                         )
                     )
-
+        et_tz = pytz.timezone("America/New_York")
+        current_time_et = datetime.now(et_tz)
+        data_timestamp = current_time_et.strftime("%Y-%m-%d 9:00AM ET") #hard coding when daily ingestino wouldn take palce
         return [
             PlayerDTO(
                 player_id=_player_id(name),
                 name=name,
                 prop_line=props["prop_line"],
-                bookmakers=props["bookmakers"]
+                bookmakers=props["bookmakers"],
+                data_as_of=data_timestamp 
             )
             for name, props in sorted(player_props.items())
         ]

@@ -1,7 +1,9 @@
 from __future__ import annotations
 from typing import Any, Dict, Optional
 import httpx
+import logging 
 
+logger = logging.getLogger(__name__)
 class TheOddsApiClient:
    
     def __init__(self, base_url: str, api_key: str, timeout_s: float = 15.0):
@@ -20,11 +22,16 @@ class TheOddsApiClient:
             r = await client.get(url, params=params)
             r.raise_for_status()
 
-            #log quota usage from headers
+            # Get JSON data before context closes
+            data = r.json()
+
+            # Log quota usage from headers
             remaining = r.headers.get("x-requests-remaining", "unknown")
             used = r.headers.get("x-requests-used", "unknown")
             last = r.headers.get("x-requests-last", "unknown")
-            print(f"[TheOdds API] Quota - Remaining: {remaining}, Used: {used}, Last request cost: {last}")
+            logger.info(
+                "TheOdds API quota - Remaining: %s, Used: %s, Last request cost: %s",
+                remaining, used, last
+            )
 
-            return r.json()
-  
+            return data
