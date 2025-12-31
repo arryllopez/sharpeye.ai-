@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 from typing import List
 
-from app.data.providers.theodds_nba_provider import (
+from app.betData.providers.theodds_nba_provider import (
     TheOddsNbaProvider,
     GameDTO,
     PlayerDTO,
+    BookmakerOdds,
 )
 
 router = APIRouter(prefix="/nba", tags=["NBA"])
