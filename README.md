@@ -37,7 +37,7 @@
 <h3 align="center">SharpEye.ai</h3>
 
   <p align="center">
-    AI-powered NBA player prop prediction platform using machine learning and Monte Carlo simulations
+    AI-powered NBA player points forecast prediction platform using machine learning and Monte Carlo simulations
     <br />
     <a href="https://github.com/arryllopez/sharpeye.ai"><strong>Explore the docs »</strong></a>
     <br />
@@ -85,14 +85,14 @@
 
 [![SharpEye.ai Screen Shot][product-screenshot]](https://sharpeye.ai)
 
-SharpEye.ai is an AI-powered sports betting analytics platform that predicts NBA player prop outcomes using XGBoost machine learning models and Monte Carlo simulations. The platform analyzes historical player performance, opponent defensive stats, rest days, home/away splits, and real-time odds to provide data-driven betting recommendations with confidence intervals and edge calculations.
+SharpEye.ai is an AI-powered sports prediction analytics platform that predicts NBA player points using XGBoost machine learning models and Monte Carlo simulations. The platform analyzes historical player performance, opponent defensive stats, rest days, home/away splits, and real-time odds to provide data-driven points forecasts with confidence intervals. this project aims to model uncertain future outcomes using historical data, quantifying risk by assigning probabilities to each possible result.
 
 Key Features:
 * Real-time NBA game and player prop data via TheOdds API
-* XGBoost ML model trained on historical NBA game logs
+* XGBoost ML model trained on historical NBA game logs (110K+) 
 * Monte Carlo simulation (10,000 iterations) for probability distributions
-* PostgreSQL database for scalable data storage
-* Automated daily data ingestion and feature calculation
+* Architected a PostgreSQL database with planned support for user authentication
+* Automated daily ETL pipelines for data ingestion, transformation, and feature computation
 * React frontend for intuitive user experience
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -152,7 +152,7 @@ To get a local copy up and running follow these steps.
    ```sh
    uvicorn app.main:app --reload
    ```
-7. Install frontend dependencies (when available)
+7. Install frontend dependencies (when available in the future)
    ```sh
    cd frontend
    npm install
@@ -166,12 +166,12 @@ To get a local copy up and running follow these steps.
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-SharpEye.ai allows you to analyze NBA player props with AI-driven predictions:
+SharpEye.ai allows you to analyze NBA player points forecasts with AI-driven predictions:
 
 1. Browse today's NBA games
-2. Select a player and prop type (points, rebounds, assists, etc.)
-3. Enter the betting line and odds from your sportsbook
-4. Get instant predictions with:
+2. Select a player to find their points props + odds across multiple sportsbooks
+3. Select the sportsbook desired - able to change odds and prop line if desired for alternate lines
+5. Get instant predictions with:
    - Expected player performance
    - Over/Under probabilities
    - Confidence intervals
@@ -244,7 +244,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Arryl Lopez - [@arryllopez](https://twitter.com/arryllopez) - arryllopez@gmail.com
+[Arryl Lopez](mailto:arryllopez7@gmail.com) – arryllopez7@gmail.com
 
 Project Link: [https://github.com/arryllopez/sharpeye.ai](https://github.com/arryllopez/sharpeye.ai)
 
