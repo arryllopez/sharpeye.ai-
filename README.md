@@ -276,7 +276,7 @@ Project Link: [https://github.com/arryllopez/sharpeye.ai](https://github.com/arr
 [license-shield]: https://img.shields.io/github/license/arryllopez/sharpeye.ai.svg?style=for-the-badge
 [license-url]: https://github.com/arryllopez/sharpeye.ai/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/arryllopez
+[linkedin-url]: https://linkedin.com/in/arryl-lopez
 [product-screenshot]: images/screenshot.png
 <!-- Shields.io badges. You can a comprehensive list with many more badges at: https://github.com/inttter/md-badges -->
 
