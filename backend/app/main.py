@@ -5,6 +5,15 @@ from fastapi import FastAPI
 #that script holds all  api endpoints related to FETCHING nba games. list of games , list players that have props
 from app.api.nba_routes import router as nba_router  
 
+#additional imports - to be used in the future for model loading etc
+from contextlib import asynccontextmanager #lifespan function --> run once when sserver starts to ingest model and model data, cleanup on shutdown
+import pickle #for loading model data
+import pandas as pd 
+from pathlib import Path #abosltue paths
+#logging
+import logging
+
+
 app = FastAPI(title="SharpEye Backend", version="0.1.0") #initialize the FastAPI app with a title and version
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible
