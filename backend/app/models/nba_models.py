@@ -47,8 +47,8 @@ class TeamDefensiveLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    #game info 
-    game_id = Column(Integer)                      # GAME_ID
+    #game info
+    game_id = Column(String(20))                   # GAME_ID - preserve leading zeros like "0042100406" by using string instead of integer
     season = Column(String)                        # SEASON
     team_id = Column(Integer)                      # TEAM_ID
     team = Column(String, nullable=False, index=True)  # TEAM_NAME
