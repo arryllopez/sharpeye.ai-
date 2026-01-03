@@ -6,11 +6,13 @@ from app.core.config import settings
 
 
 def get_async_database_url(url: str) -> str:
-    #convert a PostgreSQL URL to use asyncpg driver
+    #convert a PostgreSQL URL to use asyncpg driver - more efficient for multiple concurrent requests
     #handling both "postgres://" and "postgresql://" prefixes
+    if "+asyncpg://" in url:
+        return url  #already has asyncpg driver
     if url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql+asyncpg://", 1)
-    if url.startswith("postgresql://"):
+    elif url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
 
