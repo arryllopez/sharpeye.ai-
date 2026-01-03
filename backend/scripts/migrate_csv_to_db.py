@@ -2,7 +2,7 @@
 import asyncio
 import pandas as pd
 from pathlib import Path
-from sqlalchemy import select
+from sqlalchemy import select, func
 from datetime import datetime, timedelta
 import sys
 
@@ -44,9 +44,9 @@ async def migrate_player_logs():
     print("Using 60-day rolling window for fresh, relevant data")
 
     async with AsyncSessionLocal() as session:
-        #converting to database records
+        #converting to database records - using to_dict for 5-8x better performance than iterrows
         records = []
-        for _, row in df.iterrows():
+        for row in df.to_dict('records'):
             record = PlayerGameLog(
                 player_id=int(row['PLAYER_ID']) if pd.notna(row['PLAYER_ID']) else None,
                 player=row['PLAYER_NAME'],
@@ -83,7 +83,8 @@ async def migrate_team_defensive_logs():
     print("\nMigrating team defensive logs...")
 
     csv_path = Path(__file__).parent.parent / "data" / "raw" / "team_defensive_game_logs.csv"
-    df = pd.read_csv(csv_path, parse_dates=['GAME_DATE'])
+    #read GAME_ID as string to preserve leading zeros
+    df = pd.read_csv(csv_path, parse_dates=['GAME_DATE'], dtype={'GAME_ID': str})
 
     #filter to last 60 days for production predictions
     #60 days provides ~30 team games, enough for L10 defensive averages and worst case scenarios
@@ -95,10 +96,11 @@ async def migrate_team_defensive_logs():
     print(f"Using 60-day rolling window for fresh, relevant data")
 
     async with AsyncSessionLocal() as session:
+        
         records = []
-        for _, row in df.iterrows():
+        for row in df.to_dict('records'):
             record = TeamDefensiveLog(
-                game_id=int(row['GAME_ID']) if pd.notna(row['GAME_ID']) else None,
+                game_id=str(row['GAME_ID']) if pd.notna(row['GAME_ID']) else None,
                 season=row['SEASON'] if pd.notna(row['SEASON']) else None,
                 team_id=int(row['TEAM_ID']) if pd.notna(row['TEAM_ID']) else None,
                 team=row['TEAM_NAME'],
@@ -120,16 +122,17 @@ async def migrate_team_defensive_logs():
 
 async def verify_migration():
     #verifying the migration by counting records in each table
+    #using COUNT(*) for efficiency - doesn't load records into memory
     print("\nVerifying migration...")
 
     async with AsyncSessionLocal() as session:
-        
-        result = await session.execute(select(PlayerGameLog))
-        player_count = len(result.scalars().all())
 
-        
-        result = await session.execute(select(TeamDefensiveLog))
-        team_count = len(result.scalars().all())
+        result = await session.execute(select(func.count()).select_from(PlayerGameLog))
+        player_count = result.scalar()
+
+
+        result = await session.execute(select(func.count()).select_from(TeamDefensiveLog))
+        team_count = result.scalar()
 
         print(f"✓ Database contains:")
         print(f"{player_count} player game logs")
@@ -144,7 +147,7 @@ async def main():
     try:
         await drop_tables()  #drop old tables first
     except Exception as e:
-        print(f"⚠ No existing tables to drop (first migration): {e}")
+        print(f"No existing tables to drop (first migration): {e}")
 
     await create_tables()
     await migrate_player_logs()

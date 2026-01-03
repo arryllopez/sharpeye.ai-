@@ -14,9 +14,16 @@ def get_async_database_url(url: str) -> str:
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
 
+# ensure that the database url is set before proceeding
+if not settings.database_url:
+    raise ValueError(
+        "DATABASE_URL environment variable is not set. "
+        "Please set it in your .env file or environment variables."
+    )
+
 database_url = get_async_database_url(settings.database_url)#async drivers are better for handling multiple concurrent requests
 #synchronous drivers handle concurrent requests by assigning a thread to each request, so for example, 100 concurrent requests (queries) woudl take 100 thread
-# async drivers use a single thread to manage multiple requests, switching between them as needed, which is more efficient and scalable 
+#async drivers use a single thread to manage multiple requests, switching between them as needed, which is more efficient and scalable 
 
 # Create async engine
 engine = create_async_engine(
