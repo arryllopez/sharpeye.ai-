@@ -1,7 +1,7 @@
-"""
-Monte Carlo Simulation Engine for NBA Player Props
-Simulates player performance to calculate probabilities and expected value
-"""
+
+# Monte Carlo Simulation Engine for NBA Player Props
+# Simulates player performance to calculate probabilities and expected value
+
 
 import numpy as np
 from typing import Dict, List, Tuple
@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 @dataclass
 class MonteCarloResult:
-    """Results from Monte Carlo simulation"""
+    # Results from Monte Carlo simulation
     predicted_value: float
     prop_line: float
     probability_over: float
@@ -24,20 +24,20 @@ class MonteCarloResult:
 
 
 class MonteCarloSimulator:
-    """
-    Monte Carlo simulator for player props betting analysis.
+    
+    # Monte Carlo simulator for player props betting analysis.
 
-    Uses the XGBoost prediction and model residual distribution to simulate
-    thousands of possible game outcomes and calculate probabilities.
-    """
+    # Uses the XGBoost prediction and model residual distribution to simulate
+    # thousands of possible game outcomes and calculate probabilities.
+    
 
     def __init__(self, n_simulations: int = 10000):
-        """
-        Initialize Monte Carlo simulator.
+        
+        # Initialize Monte Carlo simulator.
 
-        Args:
-            n_simulations: Number of simulations to run (default: 10,000)
-        """
+        # Args:
+        #     n_simulations: Number of simulations to run (default: 10,000)
+        
         self.n_simulations = n_simulations
 
     def simulate_prop(
@@ -48,19 +48,19 @@ class MonteCarloSimulator:
         over_odds: int = -110,
         under_odds: int = -110
     ) -> MonteCarloResult:
-        """
-        Run Monte Carlo simulation for a player prop.
+        
+        # Run Monte Carlo simulation for a player prop.
 
-        Args:
-            predicted_value: XGBoost model prediction (e.g., 25.3 points)
-            residual_std: Standard deviation from model residuals (e.g., 6.2)
-            prop_line: Betting line (e.g., 24.5 points)
-            over_odds: American odds for over (e.g., -110)
-            under_odds: American odds for under (e.g., -110)
+        # Args:
+        #     predicted_value: XGBoost model prediction (e.g., 25.3 points)
+        #     residual_std: Standard deviation from model residuals (e.g., 6.2)
+        #     prop_line: Betting line (e.g., 24.5 points)
+        #     over_odds: American odds for over (e.g., -110)
+        #     under_odds: American odds for under (e.g., -110)
 
-        Returns:
-            MonteCarloResult with probabilities and edge analysis
-        """
+        # Returns:
+        #     MonteCarloResult with probabilities and edge analysis
+        
         # Run simulations using normal distribution
         # The model already accounts for all features, so we just add residual noise
         simulations = np.random.normal(
@@ -80,20 +80,9 @@ class MonteCarloSimulator:
         # Determine best bet
         best_edge = max(edge_over, edge_under)
 
-        # Calculate confidence score (0-100)
-        # Higher confidence when:
-        # 1. Prediction is far from line
-        # 2. Probability is extreme (very high or very low)
-        # 3. Low variance in player performance
-        distance_from_line = abs(predicted_value - prop_line)
+        # Confidence score based on higher probability - deterministic but vague
         prob_confidence = max(prob_over, prob_under)
-        variance_factor = 1 / (1 + residual_std / 5)  # Penalize high variance
-
-        confidence_score = min(100, (
-            distance_from_line * 10 +
-            (prob_confidence - 0.5) * 100 +
-            variance_factor * 20
-        ))
+        confidence_score = prob_confidence * 100
 
         # Calculate percentiles for visualization
         percentiles = {
@@ -123,21 +112,21 @@ class MonteCarloSimulator:
         self,
         props_with_predictions: List[Dict]
     ) -> List[Dict]:
-        """
-        Analyze multiple props and rank by edge.
+        
+        # Analyze multiple props and rank by edge.
 
-        Args:
-            props_with_predictions: List of dicts with:
-                - player_name
-                - predicted_value
-                - residual_std
-                - prop_line
-                - over_odds
-                - under_odds
+        # Args:
+        #     props_with_predictions: List of dicts with:
+        #         - player_name
+        #         - predicted_value
+        #         - residual_std
+        #         - prop_line
+        #         - over_odds
+        #         - under_odds
 
-        Returns:
-            List of props sorted by edge (best first)
-        """
+        # Returns:
+        #     List of props sorted by edge (best first)
+        
         results = []
 
         for prop in props_with_predictions:
@@ -173,16 +162,16 @@ class MonteCarloSimulator:
         return results
 
     def _calculate_edge(self, probability: float, american_odds: int) -> float:
-        """
-        Calculate expected value (edge) for a bet.
+        
+        # Calculate expected value (edge) for a bet.
 
-        Args:
-            probability: True probability of outcome (0-1)
-            american_odds: American odds (e.g., -110, +150)
+        # Args:
+        #     probability: True probability of outcome (0-1)
+        #     american_odds: American odds (e.g., -110, +150)
 
-        Returns:
-            Edge as percentage (positive = +EV, negative = -EV)
-        """
+        # Returns:
+        #     Edge as percentage (positive = +EV, negative = -EV)
+        
         # Convert American odds to decimal
         if american_odds > 0:
             decimal_odds = (american_odds / 100) + 1
@@ -201,15 +190,15 @@ class MonteCarloSimulator:
         return edge
 
     def generate_visualization_data(self, mc_result: MonteCarloResult) -> Dict:
-        """
-        Generate data for frontend visualization (histogram, distribution).
+        
+        # Generate data for frontend visualization (histogram, distribution).
 
-        Args:
-            mc_result: MonteCarloResult object
+        # Args:
+        #     mc_result: MonteCarloResult object
 
-        Returns:
-            Dict with histogram bins and distribution data
-        """
+        # Returns:
+        #     Dict with histogram bins and distribution data
+        
         # Create histogram bins
         hist, bin_edges = np.histogram(mc_result.simulations, bins=50)
 
