@@ -1,4 +1,3 @@
-
 # Prediction Service
 # Orchestrates feature calculation, XGBoost prediction, and Monte Carlo simulation
 
@@ -67,12 +66,30 @@ class PredictionService:
         # CRITICAL: Validate critical features before proceeding
         # These features are essential for model accuracy - fail fast if missing
         critical_features = ['PTS_L5', 'PTS_L10', 'MIN_L5', 'DEF_PTS_ALLOWED_L5', 'REST_DAYS']
+        
+        # Check for missing or None values
         for feat in critical_features:
-            if feat not in features_dict or features_dict[feat] == 0:
+            if feat not in features_dict or features_dict[feat] is None:
                 raise ValueError(
-                    f"Critical feature '{feat}' is missing or zero. "
+                    f"Critical feature '{feat}' is missing. "
                     f"Cannot generate reliable prediction without this feature."
                 )
+        
+        # Only validate zero values for features where zero is truly invalid
+        # Note: MIN_L5, PTS_L5, PTS_L10 can legitimately be zero for benchwarmers
+        zero_invalid_features = ['DEF_PTS_ALLOWED_L5', 'REST_DAYS']
+        for feat in zero_invalid_features:
+            if features_dict[feat] == 0:
+                if feat == 'REST_DAYS':
+                    raise ValueError(
+                        "REST_DAYS is zero, indicating game_date equals last_game_date. "
+                        "This suggests a data error (players cannot play twice in one day)."
+                    )
+                else:
+                    raise ValueError(
+                        f"Critical feature '{feat}' is zero, indicating invalid data. "
+                        f"Cannot generate reliable prediction."
+                    )
 
         # Step 2: Add categorical features (one-hot encoding for teams)
         # Initialize all categorical features to 0

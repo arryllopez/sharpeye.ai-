@@ -1,5 +1,3 @@
-#utilizing fast api
-
 #All necessary imports 
 from fastapi import FastAPI, Depends, HTTPException
 #import the nba routes from app/api/nba_routes.py
@@ -11,6 +9,8 @@ from app.models.nba_models import PlayerGameLog
 #rate limiting 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+#debug routers hidden in production
+from fastapi import APIRouter, Depends, HTTPException 
 #additional imports - to be used in the future for model loading etc
 from contextlib import asynccontextmanager #lifespan function --> run once when sserver starts to ingest model and model data, cleanup on shutdown
 import pickle #for loading model data
@@ -36,6 +36,9 @@ model_data = {} #avoids reloading model on every request and is cleared on shutd
 load_dotenv() #solely for checking environment mode
 
 ENV = os.getenv("ENV", "development")
+
+#debug router for development only
+debug_router=APIRouter(prefix="/debug", tags=["debug"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -89,6 +92,9 @@ app.state.limiter = limiter
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible
 
+if ENV == "development":
+    app.include_router(debug_router)
+
 @app.get("/health") #check if the api is running
 async def health(db = Depends(get_db)):
     try: 
@@ -110,8 +116,7 @@ def info():
 def root():
     return {"message": "Welcome to the SharpEye Backend API, type in /docs to view the API documentation"} #return a welcome message at the root endpoint
 
-
-@app.get("/debug/database-date-range")
+@debug_router.get("/database-date-range")
 async def debug_database_date_range(db = Depends(get_db)):
     #check the date range of data in the database - verifying the rolling window
    
@@ -131,11 +136,10 @@ async def debug_database_date_range(db = Depends(get_db)):
     return {
         "earliest_game": str(min_result),
         "most_recent_game": str(max_result),
-        "total_game_logs": count_result
+        "total_games": count_result
     }
 
-
-@app.get("/debug/player/{player_name}")
+@debug_router.get("/player/{player_name}")
 async def debug_player_data(player_name: str, db = Depends(get_db)):
     #debug endpoint to fetch recent  games for a player and total games in db
 
@@ -177,7 +181,7 @@ async def debug_player_data(player_name: str, db = Depends(get_db)):
 
 
 #debug endpoint to verify feature calculations step-by-step
-@app.get("/debug/features/{player_name}")
+@debug_router.get("/features/{player_name}")
 async def debug_feature_calculation(
     player_name: str,
     game_date: str,
