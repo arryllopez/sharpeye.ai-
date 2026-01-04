@@ -74,10 +74,10 @@ class FeatureCalculationService:
 
         # CRITICAL: Require minimum 10 games for reliable predictions
         # This prevents garbage predictions from insufficient data
-        if len(games) < 10:
+        if len(games) < lookback_days:
             raise ValueError(
-                f"Insufficient data for {player_name}: only {len(games)} games found. "
-                f"Minimum 10 games required for reliable predictions."
+                f"Insufficient data for {player_name}: only {len(games)} games found, "
+                f"need {lookback_days} for L{lookback_days} rolling stats."
             )
 
         # Convert to pandas for easy aggregation
@@ -327,7 +327,8 @@ class FeatureCalculationService:
         if not games:
             return {f'PLAYER_TEAM_PACE_L{lookback_days}': 100.0}
 
-        pace = sum(g.game_pace for g in games if g.game_pace) / len(games)
+        pace_games = [g for g in games if g.game_pace is not None]
+        pace = sum(g.game_pace for g in pace_games) / len(pace_games) if pace_games else 100.0
 
         return {
             f'PLAYER_TEAM_PACE_L{lookback_days}': pace,
