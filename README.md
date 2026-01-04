@@ -105,7 +105,7 @@ Key Features:
 * [![React][React.js]][React-url]
 * [![PostgreSQL][PostgreSQL]][PostgreSQL-url]
 * [![Python][Python]][Python-url]
-* [![Railway][Railway]][Railway-url]
+* [![Railway][Supabase]][Supabase-url]
 * [![Vercel][Vercel]][Vercel-url]
 * [![AWS][AWS]][AWS-url]
 * [![Pandas][Pandas]][Pandas-url]
@@ -288,8 +288,8 @@ Project Link: [https://github.com/arryllopez/sharpeye.ai](https://github.com/arr
 [PostgreSQL-url]: https://www.postgresql.org/
 [Python]: https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white
 [Python-url]: https://www.python.org/
-[Railway]: https://img.shields.io/badge/Railway-131415?style=for-the-badge&logo=railway&logoColor=white
-[Railway-url]: https://railway.app/
+[Supabase]: https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white
+[Supabase-url]: https://supabase.com/
 [Vercel]: https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white
 [Vercel-url]: https://vercel.com/
 [AWS]: https://img.shields.io/badge/AWS_Lambda-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white
