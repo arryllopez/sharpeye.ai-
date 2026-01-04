@@ -1,32 +1,355 @@
-#utilizing fast api 
+#utilizing fast api
 
-from fastapi import FastAPI
-#import the nba routes from app/api/nba_routes.py 
+#All necessary imports 
+from fastapi import FastAPI, Depends, HTTPException
+#import the nba routes from app/api/nba_routes.py
 #that script holds all  api endpoints related to FETCHING nba games. list of games , list players that have props
-from app.api.nba_routes import router as nba_router  
-
+from app.api.nba_routes import router as nba_router 
+from sqlalchemy import select, func, and_
+from datetime import date, datetime
+from app.models.nba_models import PlayerGameLog
+#rate limiting 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 #additional imports - to be used in the future for model loading etc
 from contextlib import asynccontextmanager #lifespan function --> run once when sserver starts to ingest model and model data, cleanup on shutdown
 import pickle #for loading model data
-import pandas as pd 
+import pandas as pd
 from pathlib import Path #abosltue paths
+from dotenv import load_dotenv
+#os for environment variables
+import os
 #logging
 import logging
 
 
-app = FastAPI(title="SharpEye Backend", version="0.1.0") #initialize the FastAPI app with a title and version
+#prediction imports
+from app.core.database import get_db
+from app.services.prediction_service import PredictionService
+from app.services.feature_service import FeatureCalculationService
+from app.schemas.prediction import PredictionRequest, PredictionResponse
+
+#global model storage
+model_data = {} #avoids reloading model on every request and is cleared on shutdown
+
+#load environment variables from .env file
+load_dotenv() #solely for checking environment mode
+
+ENV = os.getenv("ENV", "development")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup: Load model and metadata
+    print("Loading XGBoost model and metadata...")
+
+    models_dir = Path(__file__).parent.parent / "models"
+
+    try:
+        # Load model
+        with open(models_dir / "xgb_points_model.pkl", "rb") as f:
+            model_data['model'] = pickle.load(f)
+
+        # Load feature columns
+        with open(models_dir / "feature_cols.pkl", "rb") as f:
+            model_data['feature_cols'] = pickle.load(f)
+
+        # Load metadata
+        with open(models_dir / "model_metadata.pkl", "rb") as f:
+            model_data['metadata'] = pickle.load(f)
+
+        print(f"Model loaded successfully!")
+        print(f"  CV MAE: {model_data['metadata']['cv_mean_mae']:.2f} points")
+        print(f"  Features: {len(model_data['feature_cols'])}")
+
+    except Exception as e:
+        print(f"ERROR loading model: {e}")
+        raise
+
+    yield
+
+    # Shutdown: Cleanup
+    print("Shutting down...")
+    model_data.clear()
+
+#application instance
+app = FastAPI(
+    title="SharpEye Backend",
+    version="0.1.0",
+    lifespan=lifespan,
+    #adding doc disabling when in production can be done here
+    docs_url = None if ENV == "production" else "/docs",
+    redoc_url = None if ENV == "production" else "/redoc",
+    #hiding openapi spec in production
+    openapi_url=None if ENV == "production" else "/openapi.json"
+
+)
+#rate limiting
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible
 
 @app.get("/health") #check if the api is running
-def health():
-    return {"status": "ok"} #return a simple json response indicating the service is operational
-
+async def health(db = Depends(get_db)):
+    try: 
+        await db.execute(select(1))
+        model_loaded=bool(model_data.get('model'))
+        return {
+            "status": "ok" if model_loaded else "degraded",
+            "model_loaded": model_loaded,
+            "database": "connected" 
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail = "Service unavailable")
 
 @app.get("/info") #root endpoint 
 def info():
     return {"service": "SharpEye Backend", "version": "0.1.0"} #return basic info about the service
 
-@app.get("/") #root endpoint   
+@app.get("/") #root endpoint
 def root():
-    return {"message": "Welcome to the SharpEye Backend API"} #return a welcome message at the root endpoint 
+    return {"message": "Welcome to the SharpEye Backend API, type in /docs to view the API documentation"} #return a welcome message at the root endpoint
+
+
+@app.get("/debug/database-date-range")
+async def debug_database_date_range(db = Depends(get_db)):
+    #check the date range of data in the database - verifying the rolling window
+   
+    #get min and max dates
+
+    # SELECT MIN(game_date), MAX(game_date), COUNT(*)
+    # FROM player_game_logs;
+
+    stmt = select (
+        func.min(PlayerGameLog.game_date),
+        func.max(PlayerGameLog.game_date),
+        func.count()
+    )
+    result = await db.execute(stmt)
+    min_result, max_result, count_result = result.fetchone()
+
+    return {
+        "earliest_game": str(min_result),
+        "most_recent_game": str(max_result),
+        "total_game_logs": count_result
+    }
+
+
+@app.get("/debug/player/{player_name}")
+async def debug_player_data(player_name: str, db = Depends(get_db)):
+    #debug endpoint to fetch recent  games for a player and total games in db
+
+    #get all games for player
+    stmt = select(PlayerGameLog).where(
+        PlayerGameLog.player.ilike(f'%{player_name}%')
+    ).order_by(PlayerGameLog.game_date.desc()).limit(20)
+
+    result = await db.execute(stmt)
+    games = result.scalars().all()
+
+    #secondary check if any games found - if not found raise 404 error
+    if not games:
+        raise HTTPException(status_code=404, detail={"error": f"No games found for '{player_name}'"})
+
+    # count total games
+    count_stmt = select(func.count()).select_from(PlayerGameLog).where(
+        PlayerGameLog.player.ilike(f'%{player_name}%')
+    )
+    total_result = await db.execute(count_stmt)
+    total_games = total_result.scalar()
+
+    return {
+        "player": games[0].player if games else None,
+        "team": games[0].team if games else None,
+        "position": games[0].position if games else None,
+        "total_games_in_db": total_games,
+        "most_recent_20_games": [
+            {
+                "date": str(g.game_date),
+                "opponent": g.matchup,
+                "points": g.points,
+                "minutes": g.minutes,
+                "is_home": g.is_home
+            }
+            for g in games
+        ]
+    }
+
+
+#debug endpoint to verify feature calculations step-by-step
+@app.get("/debug/features/{player_name}")
+async def debug_feature_calculation(
+    player_name: str,
+    game_date: str,
+    opponent: str,
+    player_team: str,
+    is_home: bool = True,
+    db = Depends(get_db)
+):
+    feature_service = FeatureCalculationService(db)
+    pred_date = datetime.strptime(game_date, "%Y-%m-%d").date()
+
+    #Get L5 stats
+    l5_stmt = select(PlayerGameLog).where(
+        and_(
+            PlayerGameLog.player == player_name,
+            PlayerGameLog.game_date < pred_date
+        )
+    ).order_by(PlayerGameLog.game_date.desc()).limit(5)
+    l5_result = await db.execute(l5_stmt)
+    l5_games = l5_result.scalars().all()
+
+    #Get L10 stats
+    l10_stmt = select(PlayerGameLog).where(
+        and_(
+            PlayerGameLog.player == player_name,
+            PlayerGameLog.game_date < pred_date
+        )
+    ).order_by(PlayerGameLog.game_date.desc()).limit(10)
+    l10_result = await db.execute(l10_stmt)
+    l10_games = l10_result.scalars().all()
+
+    #Get L20 stats
+    l20_stmt = select(PlayerGameLog).where(
+        and_(
+            PlayerGameLog.player == player_name,
+            PlayerGameLog.game_date < pred_date
+        )
+    ).order_by(PlayerGameLog.game_date.desc()).limit(20)
+    l20_result = await db.execute(l20_stmt)
+    l20_games = l20_result.scalars().all()
+
+    # Calculate features using service
+    l5_features = await feature_service.get_player_rolling_stats(player_name, pred_date, 5)
+    l10_features = await feature_service.get_player_rolling_stats(player_name, pred_date, 10)
+    l20_features = await feature_service.get_player_rolling_stats(player_name, pred_date, 20)
+    rest_days = await feature_service.get_rest_days(player_name, pred_date)
+
+    # Get opponent defense
+    opp_defense = await feature_service.get_opponent_defensive_stats(opponent, pred_date, 10)
+
+    # Get pace stats
+    pace_stats = await feature_service.get_team_pace_stats(player_team, pred_date, lookback_days=5)
+
+    return {
+        "player": player_name,
+        "game_date": game_date,
+        "opponent": opponent,
+        "games_found": {
+            "l5": len(l5_games),
+            "l10": len(l10_games),
+            "l20": len(l20_games)
+        },
+        "l5_raw_games": [
+            {
+                "date": str(g.game_date),
+                "opponent": g.matchup,
+                "points": g.points,
+                "minutes": g.minutes,
+                "fga": g.fg_attempted,
+                "rebounds": g.rebounds,
+                "assists": g.assists
+            }
+            for g in l5_games
+        ],
+        "l10_raw_games": [
+            {
+                "date": str(g.game_date),
+                "points": g.points,
+                "minutes": g.minutes
+            }
+            for g in l10_games
+        ],
+        "calculated_features": {
+            "l5_stats": l5_features,
+            "l10_stats": l10_features,
+            "l20_stats": l20_features,
+            "rest_days": rest_days,
+            "opponent_defense": opp_defense,
+            "pace_stats": pace_stats
+        },
+        "manual_verification": {
+            "l5_pts_avg": sum(g.points for g in l5_games) / len(l5_games) if l5_games else 0,
+            "l10_pts_avg": sum(g.points for g in l10_games) / len(l10_games) if l10_games else 0,
+            "l20_pts_avg": sum(g.points for g in l20_games) / len(l20_games) if l20_games else 0,
+            "l5_min_avg": sum(g.minutes for g in l5_games) / len(l5_games) if l5_games else 0,
+            "l10_min_avg": sum(g.minutes for g in l10_games) / len(l10_games) if l10_games else 0
+        }
+    }
+
+
+@app.post("/predict", response_model=PredictionResponse)
+@limiter.limit("10/minute")  # Rate limit: 10 requests per minute per IP
+async def predict_player_points(
+    request: PredictionRequest,
+    db = Depends(get_db)
+):
+    #docstring for the endpoint
+    """
+    Predict NBA player points for upcoming game.
+
+    This endpoint calculates all features from the database, runs XGBoost prediction,
+    and optionally performs Monte Carlo simulation if a prop line is provided.
+
+    Required parameters:
+    - player: Player name (full or partial)
+    - player_team: Team abbreviation (e.g., "LAL")
+    - opponent: Opponent full name (e.g., "Boston Celtics")
+    - game_date: Game date (YYYY-MM-DD)
+    - is_home: True if home game, False if away
+
+    Optional parameters:
+    - prop_line: Betting line (e.g., 25.5)
+    - over_odds: Over odds (default: -110)
+    - under_odds: Under odds (default: -110)
+
+    Returns comprehensive prediction with:
+    - Predicted points
+    - Player recent stats
+    - Matchup analysis
+    - Pace context
+    - Confidence intervals
+    - Monte Carlo analysis (if prop_line provided)
+    - Key factors
+    """
+    # Check if model is loaded
+    if 'model' not in model_data:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Server is starting up."
+        )
+    try:
+        # Initialize prediction service
+        prediction_service = PredictionService(
+            model=model_data['model'],
+            feature_cols=model_data['feature_cols'],
+            model_metadata=model_data['metadata'],
+            db=db
+        )
+
+        # Generate prediction
+        result = await prediction_service.predict(
+            player=request.player,
+            player_team=request.player_team,
+            opponent=request.opponent,
+            game_date=request.game_date,
+            is_home=request.is_home,
+            prop_line=request.prop_line,
+            over_odds=request.over_odds or -110,
+            under_odds=request.under_odds or -110
+        )
+
+        return result
+    except ValueError as e:
+        # Player not found or invalid input
+        raise HTTPException(
+            status_code=404, 
+            detail="Player not found in database. Data may not be available yet."
+        )
+    except Exception as e:
+        # Unexpected error
+        logging.error(f"Prediction error: {str(e)}", exc_info=True)  # Log details server-side
+        raise HTTPException(
+            status_code=500,
+            detail="Prediction failed. Please try again later."  # Generic message to user
+        )
