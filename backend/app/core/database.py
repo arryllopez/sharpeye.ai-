@@ -27,11 +27,21 @@ database_url = get_async_database_url(settings.database_url)#async drivers are b
 #synchronous drivers handle concurrent requests by assigning a thread to each request, so for example, 100 concurrent requests (queries) woudl take 100 thread
 #async drivers use a single thread to manage multiple requests, switching between them as needed, which is more efficient and scalable 
 
-# Create async engine
+# create async engine
+# supabase uses pgBouncer in transaction mode, which requires disabling statement caching
 engine = create_async_engine(
     database_url,
     echo=False,  # lets set to false for now and then true later for sql debugging
     future=True,
+    pool_pre_ping=True,  #enable pool pre-ping to check connections before using them
+    #initializing database connections and max overflow of database connections
+    pool_size=5, #set a reasonable pool size for handling concurrent requests
+    max_overflow=10, #allow some overflow connections during peak times
+    connect_args={
+        "statement_cache_size": 0,  # required for Supabase pgBouncer compatibility
+        #pgbouncer handles connection pooling 
+        "prepared_statement_cache_size": 0,
+    },
 )
 
 # Create async session factory

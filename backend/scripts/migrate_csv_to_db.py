@@ -75,7 +75,7 @@ async def migrate_player_logs():
         session.add_all(records)
         await session.commit()
 
-    print(f"✓ Migrated {len(records)} player game log records")
+    print(f"SUCCESS: Migrated {len(records)} player game log records")
 
 
 async def migrate_team_defensive_logs():
@@ -117,7 +117,7 @@ async def migrate_team_defensive_logs():
         session.add_all(records)
         await session.commit()
 
-    print(f"✓ Migrated {len(records)} team defensive log records")
+    print(f"SUCCESS: Migrated {len(records)} team defensive log records")
 
 
 async def verify_migration():
@@ -134,9 +134,9 @@ async def verify_migration():
         result = await session.execute(select(func.count()).select_from(TeamDefensiveLog))
         team_count = result.scalar()
 
-        print(f"✓ Database contains:")
-        print(f"{player_count} player game logs")
-        print(f"{team_count} team defensive logs")
+        print(f"Database contains:")
+        print(f"  {player_count} player game logs")
+        print(f"  {team_count} team defensive logs")
 
 
 async def main():

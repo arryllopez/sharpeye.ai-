@@ -176,13 +176,13 @@ def main():
                 print(f"\n  Checkpoint: Saving progress ({idx}/{len(missing_players)} players)...")
                 with open(CACHE_PATH, 'wb') as f:
                     pickle.dump(player_positions, f)
-                print(f"  ✓ Checkpoint saved")
+                print(f"  Checkpoint saved")
 
         # Save final cache
         print(f"\nSaving final position cache...")
         with open(CACHE_PATH, 'wb') as f:
             pickle.dump(player_positions, f)
-        print("  ✓ Cache saved")
+        print("  Cache saved")
 
     # Map positions to dataframe
     df['POSITION'] = df['PLAYER_ID'].map(player_positions).fillna('Unknown')
