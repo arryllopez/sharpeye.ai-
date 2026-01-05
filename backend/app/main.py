@@ -6,9 +6,10 @@ from app.api.nba_routes import router as nba_router
 from sqlalchemy import select, func, and_
 from datetime import date, datetime
 from app.models.nba_models import PlayerGameLog
-#rate limiting 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+#rate limiting with fastapi-limiter + Redis (Upstash)
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+import redis.asyncio as aioredis
 #debug routers hidden in production
 from fastapi import APIRouter, Depends, HTTPException 
 #additional imports - to be used in the future for model loading etc
@@ -42,7 +43,7 @@ debug_router=APIRouter(prefix="/debug", tags=["debug"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup: Load model and metadata
+    # Startup: Load model and initialize Redis
     print("Loading XGBoost model and metadata...")
 
     models_dir = Path(__file__).parent.parent / "models"
@@ -68,10 +69,28 @@ async def lifespan(app: FastAPI):
         print(f"ERROR loading model: {e}")
         raise
 
+    # Initialize Redis rate limiting (optional - graceful fallback if no REDIS_URL)
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        try:
+            redis_connection = aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
+            await FastAPILimiter.init(redis_connection)
+            print("Redis rate limiting initialized successfully")
+        except Exception as e:
+            print(f"WARNING: Redis connection failed: {e}")
+            print("Rate limiting will be disabled")
+    else:
+        print("No REDIS_URL provided - rate limiting disabled (dev mode)")
+
     yield
 
     # Shutdown: Cleanup
     print("Shutting down...")
+    if redis_url:
+        try:
+            await FastAPILimiter.close()
+        except:
+            pass
     model_data.clear()
 
 #application instance
@@ -86,9 +105,6 @@ app = FastAPI(
     openapi_url=None if ENV == "production" else "/openapi.json"
 
 )
-#rate limiting
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible
 
@@ -283,10 +299,10 @@ async def debug_feature_calculation(
 
 
 @app.post("/predict", response_model=PredictionResponse)
-@limiter.limit("10/minute")  # Rate limit: 10 requests per minute per IP
 async def predict_player_points(
-    request: PredictionRequest,
-    db = Depends(get_db)
+    prediction_request: PredictionRequest,
+    db = Depends(get_db),
+    rate_limit: None = Depends(RateLimiter(times=10, seconds=60))  # 10 requests per minute
 ):
     #docstring for the endpoint
     """
@@ -333,14 +349,14 @@ async def predict_player_points(
 
         # Generate prediction
         result = await prediction_service.predict(
-            player=request.player,
-            player_team=request.player_team,
-            opponent=request.opponent,
-            game_date=request.game_date,
-            is_home=request.is_home,
-            prop_line=request.prop_line,
-            over_odds=request.over_odds or -110,
-            under_odds=request.under_odds or -110
+            player=prediction_request.player,
+            player_team=prediction_request.player_team,
+            opponent=prediction_request.opponent,
+            game_date=prediction_request.game_date,
+            is_home=prediction_request.is_home,
+            prop_line=prediction_request.prop_line,
+            over_odds=prediction_request.over_odds or -110,
+            under_odds=prediction_request.under_odds or -110
         )
 
         return result
