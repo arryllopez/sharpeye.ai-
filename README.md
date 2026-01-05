@@ -191,9 +191,9 @@ _For more examples, please refer to the [Documentation](https://github.com/arryl
 - [x] TheOdds API integration
 - [x] PostgreSQL database schema
 - [x] Monte Carlo simulation engine
-- [ ] Database migration completion
-- [ ] Feature calculation service (PostgreSQL-based)
-- [ ] /predict API endpoint
+- [x] Database migration completion
+- [x] Feature calculation service (PostgreSQL-based)
+- [x] /predict API endpoint
 - [ ] AWS Lambda for daily automation
 - [ ] FastAPI backend deployment (Railway)
 - [ ] React frontend development
