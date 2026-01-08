@@ -195,9 +195,9 @@ _For more examples, please refer to the [Documentation](https://github.com/arryl
 - [x] Feature calculation service (PostgreSQL-based)
 - [x] /predict API endpoint
 - [ ] AWS Lambda for daily automation
-- [ ] FastAPI backend deployment (Railway)
+- [x] FastAPI backend deployment (Render)
 - [ ] React frontend development
-- [ ] Frontend deployment (Vercel)
+- [ ] Frontend deployment (Vercel) or Render, currently debating architecture decisions
 - [ ] Multi-prop support (rebounds, assists, etc.)
     - [ ] Separate models per prop type
     - [ ] Parlay analysis
