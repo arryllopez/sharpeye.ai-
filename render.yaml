@@ -42,7 +42,6 @@ services:
     name: sharpeye-morning-ingestion
     runtime: python
     region: oregon
-    plan: free
     branch: main
     schedule: "0 8 * * *"
     buildCommand: cd backend && pip install -r requirements.txt
@@ -59,7 +58,6 @@ services:
     name: sharpeye-evening-odds
     runtime: python
     region: oregon
-    plan: free
     branch: main
     schedule: "0 21 * * *"
     buildCommand: cd backend && pip install -r requirements.txt
