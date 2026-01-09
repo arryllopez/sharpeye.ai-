@@ -17,3 +17,58 @@ services:
       - key: THEODDS_API_KEY
         sync: false
     healthCheckPath: /health
+
+  # Cron job: Morning refresh at 3 AM ET (8 AM UTC)
+  # Fetches tonight's game schedule from TheOdds API
+  - type: cron
+    name: sharpeye-morning-games
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    schedule: "0 8 * * *"
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && python scripts/fetch_tonights_games.py
+    envVars:
+      - key: ENV
+        value: production
+      - key: REDIS_URL
+        sync: false
+      - key: THEODDS_API_KEY
+        sync: false
+
+  # Cron job: Morning database ingestion at 3 AM ET (8 AM UTC)
+  # Ingests last night's NBA game results and cleans up old data
+  - type: cron
+    name: sharpeye-morning-ingestion
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    schedule: "0 8 * * *"
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && python scripts/ingest_and_cleanup_db.py
+    envVars:
+      - key: ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+
+  # Cron job: Evening odds refresh at 4 PM ET (9 PM UTC)
+  # Fetches betting odds after lineups/injuries are announced
+  - type: cron
+    name: sharpeye-evening-odds
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    schedule: "0 21 * * *"
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && python scripts/daily_odds_refresh.py
+    envVars:
+      - key: ENV
+        value: production
+      - key: REDIS_URL
+        sync: false
+      - key: THEODDS_API_KEY
+        sync: false
