@@ -24,7 +24,6 @@ services:
     name: sharpeye-morning-games
     runtime: python
     region: oregon
-    plan: free
     branch: main
     schedule: "0 8 * * *"
     buildCommand: cd backend && pip install -r requirements.txt
