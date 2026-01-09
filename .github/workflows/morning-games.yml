@@ -1,0 +1,19 @@
+name: Morning Games Fetch
+
+on:
+  schedule:
+    # Runs at 3:00 AM ET (8:00 AM UTC) daily
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  fetch-games:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger cron endpoint
+        run: |
+          curl -X POST "${{ secrets.RENDER_BACKEND_URL }}/nba/cron/fetch-tonights-games" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error
