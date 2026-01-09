@@ -29,6 +29,8 @@ from app.core.database import get_db
 from app.services.prediction_service import PredictionService
 from app.services.feature_service import FeatureCalculationService
 from app.schemas.prediction import PredictionRequest, PredictionResponse
+#cache service for odds data
+from app.services.cache_service import cache_service
 
 #global model storage
 model_data = {} #avoids reloading model on every request and is cleared on shutdown
@@ -82,6 +84,9 @@ async def lifespan(app: FastAPI):
     else:
         print("No REDIS_URL provided - rate limiting disabled (dev mode)")
 
+    # Initialize cache service for odds data
+    await cache_service.connect()
+
     yield
 
     # Shutdown: Cleanup
@@ -91,6 +96,8 @@ async def lifespan(app: FastAPI):
             await FastAPILimiter.close()
         except:
             pass
+    # Close cache service
+    await cache_service.close()
     model_data.clear()
 
 #application instance
