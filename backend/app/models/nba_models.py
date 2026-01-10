@@ -62,7 +62,7 @@ class TeamDefensiveLog(Base):
     opp_fg3_pct = Column(Float)                    # OPP_FG3_PCT
     game_pace = Column(Float)                      # GAME_PACE
 
-    #same composite indexing logic applies hjere 
+    #same composite indexing logic applies hjere
     __table_args__ = (
         Index('idx_team_date', 'team', 'game_date'),
     )

@@ -4,6 +4,9 @@
 
 import asyncio
 import pandas as pd
+import pickle
+import os
+from pathlib import Path
 from nba_api.stats.endpoints import leaguegamelog, LeagueGameFinder
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
@@ -14,6 +17,27 @@ class NBADataService:
 
     def __init__(self, rate_limit_seconds: float = 2.0):
         self.rate_limit_seconds = rate_limit_seconds
+        self._position_cache = None  # Lazy-loaded position cache
+
+    def _load_position_cache(self):
+        if self._position_cache is not None:
+            return self._position_cache
+
+        # Try to load from pickle cache
+        backend_dir = Path(__file__).parent.parent.parent
+        cache_path = backend_dir / "data" / "raw" / "player_positions_cache.pkl"
+
+        if cache_path.exists():
+            with open(cache_path, 'rb') as f:
+                self._position_cache = pickle.load(f)
+            # Filter out Unknown positions
+            self._position_cache = {
+                k: v for k, v in self._position_cache.items() if v != 'Unknown'
+            }
+        else:
+            self._position_cache = {}
+
+        return self._position_cache
 
     async def fetch_player_game_logs(self, game_date: str) -> List[Dict]:
         # Fetch player box scores for a specific date
@@ -64,16 +88,22 @@ class NBADataService:
 
             print(f"    Found {len(df)} player performances")
 
+            # Load position cache
+            position_cache = self._load_position_cache()
+
             # Convert to list of dicts
             player_logs = []
             for _, row in df.iterrows():
+                player_id = int(row['PLAYER_ID']) if pd.notna(row['PLAYER_ID']) else None
+                position = position_cache.get(player_id) if player_id else None
+
                 player_logs.append({
-                    'player_id': int(row['PLAYER_ID']) if pd.notna(row['PLAYER_ID']) else None,
+                    'player_id': player_id,
                     'player': row['PLAYER_NAME'],
                     'team': row['TEAM_ABBREVIATION'],
                     'game_date': row['GAME_DATE'].date(),
                     'matchup': row['MATCHUP'] if pd.notna(row['MATCHUP']) else None,
-                    'position': None,  # Position requires separate API call - handle later
+                    'position': position,  # From position cache
                     'is_home': 1 if 'vs.' in row['MATCHUP'] else 0,
                     'minutes': float(row['MIN']) if pd.notna(row['MIN']) else None,
                     'points': float(row['PTS']) if pd.notna(row['PTS']) else None,
