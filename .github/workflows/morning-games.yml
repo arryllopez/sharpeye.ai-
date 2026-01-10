@@ -11,9 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger cron endpoint
+      - name: Wake up backend (handle cold start)
+        env:
+          BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL }}
+        run: curl -sS "${BACKEND_URL}/health" || true
+
+      - name: Wait for backend to be ready
+        env:
+          BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL }}
         run: |
-          curl -X POST "${{ secrets.RENDER_BACKEND_URL }}/nba/cron/fetch-tonights-games" \
-            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+          set -e
+          for i in {1..45}; do
+            if curl -fsS "${BACKEND_URL}/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend not ready after 90s" >&2
+          exit 1
+
+      - name: Trigger cron endpoint
+        env:
+          BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -X POST "${BACKEND_URL}/nba/cron/fetch-tonights-games" \
+            -H "X-Cron-Secret: ${CRON_SECRET}" \
             -H "Content-Type: application/json" \
+            --max-time 120 \
+            --retry 2 \
+            --retry-delay 10 \
             --fail --show-error
