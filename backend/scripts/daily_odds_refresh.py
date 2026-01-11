@@ -1,6 +1,6 @@
 # Daily cron job to fetch and cache TheOddsAPI NBA odds data
 # Runs at 4 PM ET every day (after lineups/injuries announced)
-# Purpose: Fetch all games + player props with odds, cache for 24 hours
+# Purpose: Fetch all games + player props with odds, cache for 10 hours (expires at 2 AM)
 # Reduces API quota usage by serving from cache throughout the day - since theoddsapi is limited 
 
 import asyncio
@@ -92,7 +92,7 @@ async def refresh_cache():
                     }
                     for p in players
                 ]
-                await cache_service.set_players(event_id, players_dict, ttl_hours=24)
+                await cache_service.set_players(event_id, players_dict, ttl_hours=10)
                 print(f"    Cached {len(players)} players")
 
                 # Small delay to avoid rate limiting
@@ -109,7 +109,7 @@ async def refresh_cache():
         current_time_et = datetime.now(et_tz).strftime("%Y-%m-%d %I:%M %p ET")
         print(f"  Timestamp: {current_time_et}")
         print(f"  Games processed: {len(cached_games)}")
-        print(f"  Cache TTL: 24 hours")
+        print(f"  Cache TTL: 10 hours (expires at 2 AM ET)")
         print("=" * 60)
 
     except Exception as e:

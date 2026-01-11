@@ -84,7 +84,7 @@ async def nba_game_players(event_id: str):
     # Cache miss - fetch from TheOdds API (uses quota!)
     players = await provider.get_prop_players(event_id)
 
-    # Cache the results for 24 hours
+    # Cache the results for 10 hours (expires at 2 AM ET)
     players_dict = [
         {
             "player_id": p.player_id,
@@ -103,7 +103,7 @@ async def nba_game_players(event_id: str):
         }
         for p in players
     ]
-    await cache_service.set_players(event_id, players_dict, ttl_hours=24)
+    await cache_service.set_players(event_id, players_dict, ttl_hours=10)
 
     return players
 
