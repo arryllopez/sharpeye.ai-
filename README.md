@@ -107,7 +107,6 @@ Key Features:
 * [![Python][Python]][Python-url]
 * [![Railway][Supabase]][Supabase-url]
 * [![Vercel][Vercel]][Vercel-url]
-* [![AWS][AWS]][AWS-url]
 * [![Pandas][Pandas]][Pandas-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -194,7 +193,7 @@ _For more examples, please refer to the [Documentation](https://github.com/arryl
 - [x] Database migration completion
 - [x] Feature calculation service (PostgreSQL-based)
 - [x] /predict API endpoint
-- [ ] AWS Lambda for daily automation
+- [x] Github Actions cron jobs for daily automation
 - [x] FastAPI backend deployment (Render)
 - [ ] React frontend development
 - [ ] Frontend deployment (Vercel) or Render, currently debating architecture decisions
