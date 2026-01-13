@@ -111,6 +111,12 @@ Key Features:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Architecture
+
+The diagram below illustrates the overall architecture of the project, including how the frontend, backend, and API communication flow through Next.js rewrites and CORS handling.
+
+![System Architecture](https://www.plantuml.com/plantuml/png/TLFDRjiy4BphAVRB9J8-i41-JZuKSMEd3c0ugktcJfFhc0r5gkGgZb7qsWVe8_P9Iag4w0RjYT3kS3Wpkxhnn1srjIx-axXJ1c4rkzrCbXyNCn2QUryKkN1l29r1Wc_5zzFwsICwWHhA9RxIkoyUxfmDK2D7Py3pLxW6m62DxWKTtDgwiGODUIXtI68FaXC7ttMPLn977NnfGIg7Wc3hx26quTUFdx3buZbI2cjCw2bhEl0yNFD3y_Dg0JjdQsZQhLRYZUXLWA23yevxcbJtyA6_DG86rUfX4u2pQQS_DNhNGmQClS_EnZ3VR2fOuTSMFONGXaw03GJZv9sHPRtFeZXdZ0s01J-Yyn1AvwTAkp9SZ669TB3k6SgaVTigJKoPFkSETf5IZdhMO8q-Tf_JgLr3uoobi78K-O7BCKoQ9WJ58oHe5QrJTCm9rKfAZGVkyEJ1o_JWYXF2GjMAb7cA2gNo_GHJAl38jP8zTraT9JUaH8_OkDOJIfZR07iPOB6NPSoHItJ-hzAlnZ0pih7A45itADHE2QW6krdjLL9RTHi1c2xvSQzVH_qvjLjdpIacQ758iE-Kz3mEfOflPDmVLF-3RMANQuW9FcCQ1sxRfrFcgV9ygr62Cd5CilttcAu3cXE7YH3eVRPsdQnroOFWOezGEWnKw05V6pHUlM1eQ9q6KrbFJmxNdnOHo2MBnc5d7JHluabZskE3bBvpKku2J_pHkhH6KMdSuhJoQHUB_iYLow8_SkMgw8zSkIvk0ajRwzy0)
+
 
 
 <!-- GETTING STARTED -->
