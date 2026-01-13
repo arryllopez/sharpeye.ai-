@@ -31,7 +31,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/arryllopez/sharpeye.ai">
-    <img src="./sharpeyeLogo.png" alt="Logo" >
+    <img src="./sharpeyeLogo.png" alt="Logo" width = "200" height = "200" >
   </a>
 
 <h3 align="center">SharpEye.ai</h3>
