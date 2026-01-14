@@ -18,6 +18,10 @@ import pickle #for loading model data
 import pandas as pd
 from pathlib import Path #abosltue paths
 from dotenv import load_dotenv
+#security middleware 
+from fastapi import Request
+from starlette.applications import Starlette
+from starlette.middleware.base import BaseHTTPMiddleware 
 #os for environment variables
 import os
 #logging
@@ -100,6 +104,18 @@ async def lifespan(app: FastAPI):
     await cache_service.close()
     model_data.clear()
 
+
+#class for security middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response =  await call_next(request) 
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+        return response
+
+
 #application instance
 app = FastAPI(
     title="SharpEye Backend",
@@ -114,6 +130,9 @@ app = FastAPI(
 )
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible
+
+#include the security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 if ENV == "development":
     app.include_router(debug_router)
@@ -130,6 +149,8 @@ async def health(db = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=503, detail = "Service unavailable")
+
+
 
 @app.get("/info") #root endpoint 
 def info():
