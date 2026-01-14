@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Header, HTTPException, Depends
 from typing import List
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 import os
 
 from app.betData.providers.theodds_nba_provider import (
@@ -25,7 +27,10 @@ def verify_cron_secret(x_cron_secret: str = Header(None)):
     return True
 
 @router.get("/games", response_model=List[GameDTO])
-async def nba_games():
+async def nba_games(
+    #rate limiting
+    rate_limit: None = Depends(RateLimiter(times=10, seconds=60))  # 10 requests per minute
+):
     # List today's NBA games
     # Strategy: Check cache first, fallback to API if not cached
 
@@ -53,7 +58,11 @@ async def nba_games():
     return games
 
 @router.get("/games/{event_id}/players", response_model=List[PlayerDTO])
-async def nba_game_players(event_id: str):
+async def nba_game_players(
+    event_id: str,
+    #rate limiting
+    rate_limit: None = Depends(RateLimiter(times=10, seconds=60))  # 10 requests per minute
+):
     # List players that currently have props for this game
     # Strategy: Check cache first, fallback to API if not cached
     
