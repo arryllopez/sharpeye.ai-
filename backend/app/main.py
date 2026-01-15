@@ -18,6 +18,7 @@ import pickle #for loading model data
 import pandas as pd
 from pathlib import Path #abosltue paths
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 #security middleware 
 from fastapi import Request
 from starlette.applications import Starlette
@@ -99,6 +100,7 @@ async def lifespan(app: FastAPI):
         try:
             await FastAPILimiter.close()
         except Exception as e:
+            logging.warning(f"Error closing FastAPILimiter : {e}")
             print(f"Warning: Error closing FastAPILimiter: {e}")    # Close cache service
     await cache_service.close()
     model_data.clear()
@@ -161,6 +163,17 @@ app = FastAPI(
     #hiding openapi spec in production
     openapi_url=None if ENV == "production" else "/openapi.json"
 
+)
+
+# CORS configuration
+CORS_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible
