@@ -11,6 +11,7 @@ import { GradientButton } from "@/components/ui/gradient-button"
 import { Bet365Logo, DraftKingsLogo, FanDuelLogo, BetMGMLogo } from "@/components/ui/logos1/index"
 import { Timeline } from "@/components/ui/timeline"
 import { PopoverTrigger, PopoverTriggerButton, Popover } from "@/components/ui/popover-aria"
+import Image from "next/image"
 
 const transitionVariants = {
   item: {
@@ -62,7 +63,7 @@ export function HeroSection() {
 
                 <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6">
                   <GradientButton asChild>
-                    <Link href="#games">View Today&apos;s Games</Link>
+                    <Link href="/todaysGames">View Today&apos;s Games</Link>
                   </GradientButton>
                 </div>
               </AnimatedGroup>
@@ -153,7 +154,7 @@ const TimelineSection = () => {
   return <Timeline data={timelineData} />
 }
 
-const menuItems = [{ name: "Today's Games", href: "#games" }]
+const menuItems = [{ name: "Today's Games", href: "/todaysGames" }]
 
 const HeroHeader = () => {
   const [menuState, setMenuState] = React.useState(false)
@@ -178,6 +179,15 @@ const HeroHeader = () => {
         >
           <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
             <div className="flex w-full justify-between lg:w-auto">
+              <Link href="/" className="transition-opacity duration-300 hover:opacity-75 flex items-center">
+                <Image
+                  src="/logo.png"
+                  alt="SharpEye Logo"
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto"
+                />
+              </Link>
               <button
                 onClick={() => setMenuState(!menuState)}
                 aria-label={menuState == true ? "Close Menu" : "Open Menu"}
@@ -244,7 +254,7 @@ const HeroHeader = () => {
               </div>
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
                 <Button asChild size="sm" className="bg-black text-white hover:bg-black/90">
-                  <Link href="https://lawrence-lopez.vercel.app/" target="blank">
+                  <Link href="https://lawrence-lopez.vercel.app/" target="_blank">
                     <span>Creator</span>
                   </Link>
                 </Button>

@@ -269,10 +269,10 @@
       var(--border-color-2)
     );
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
   }
-
   .gradient-button:hover {
     --pos-x: 0%;
     --pos-y: 91.51%;
