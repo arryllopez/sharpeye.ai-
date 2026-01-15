@@ -108,11 +108,46 @@ async def lifespan(app: FastAPI):
 #class for security middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        response =  await call_next(request) 
+        response = await call_next(request)
+        
+        # Looser CSP for /docs endpoints
+        if request.url.path.startswith(('/docs', '/openapi.json')):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "img-src 'self' https://fastapi.tiangolo.com data:; "
+                "font-src 'self' https://cdn.jsdelivr.net data:"
+            )
+        else:
+            # Strict CSP for API endpoints
+            response.headers["Content-Security-Policy"] = "default-src 'self'"
+        
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+        return response
+
+#logging middleware
+#define the logging config
+logging.basicConfig(
+    filename="app.log", #log the data into this file 
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request:Request, call_next):
+        response = await call_next(request) #await the next request 
+        #log the request details
+        client_ip = request.client.host
+        method = request.method #get post put or delete
+        url = request.url.path
+        status_code = response.status_code
+
+        logger.info(f"Request type: {method} ,{url} returned {status_code} to {client_ip}")
+
         return response
 
 
@@ -134,6 +169,9 @@ app.include_router(nba_router) #include the nba router to the main app, so all e
 #include the security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)
 
+#include the logging middleware
+app.add_middleware(LoggingMiddleware)
+
 if ENV == "development":
     app.include_router(debug_router)
 
@@ -149,8 +187,6 @@ async def health(db = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=503, detail = "Service unavailable")
-
-
 
 @app.get("/info") #root endpoint 
 def info():
