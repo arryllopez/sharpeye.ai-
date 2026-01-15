@@ -32,8 +32,6 @@ def verify_cron_secret(x_cron_secret: str = Header(None)):
 async def nba_games(
     #rate limiting
     rate_limit: None = Depends(RateLimiter(times=10, seconds=60))  # 10 requests per minute
-    #input validation for event_id
-    
 ):
     # List today's NBA games
     # Strategy: Check cache first, fallback to API if not cached
@@ -72,7 +70,7 @@ async def nba_game_players(
             description = "TheOddsAPI event id for each NBA game",
             min_length = 32,
             max_length=32,
-            regex="^[a-f0-9]{32}$" #
+            pattern="^[a-f0-9]{32}$" 
         )
     ],
     rate_limit: None = Depends(RateLimiter(times=10, seconds=60))

@@ -98,9 +98,8 @@ async def lifespan(app: FastAPI):
     if redis_url:
         try:
             await FastAPILimiter.close()
-        except:
-            pass
-    # Close cache service
+        except Exception as e:
+            print(f"Warning: Error closing FastAPILimiter: {e}")    # Close cache service
     await cache_service.close()
     model_data.clear()
 
@@ -111,14 +110,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         
         # Looser CSP for /docs endpoints
-        if request.url.path.startswith(('/docs', '/openapi.json')):
+        if request.url.path.startswith(('/docs', '/redoc', '/openapi.json')):
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
                 "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
                 "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
                 "img-src 'self' https://fastapi.tiangolo.com data:; "
                 "font-src 'self' https://cdn.jsdelivr.net data:"
-            )
+            )        
         else:
             # Strict CSP for API endpoints
             response.headers["Content-Security-Policy"] = "default-src 'self'"
@@ -141,12 +140,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request:Request, call_next):
         response = await call_next(request) #await the next request 
         #log the request details
-        client_ip = request.client.host
+        client_ip = request.client.host if request.client else "unknown"        
         method = request.method #get post put or delete
         url = request.url.path
         status_code = response.status_code
 
-        logger.info(f"Request type: {method} ,{url} returned {status_code} to {client_ip}")
+        logger.info(f"Request type: {method} ,{url} returned {status_code}")
 
         return response
 
@@ -271,8 +270,10 @@ async def debug_feature_calculation(
     db = Depends(get_db)
 ):
     feature_service = FeatureCalculationService(db)
-    pred_date = datetime.strptime(game_date, "%Y-%m-%d").date()
-
+    try:
+        pred_date = datetime.strptime(game_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid game_date format. Use YYYY-MM-DD.")
     #Get L5 stats
     l5_stmt = select(PlayerGameLog).where(
         and_(
@@ -436,4 +437,4 @@ async def predict_player_points(
         raise HTTPException(
             status_code=500,
             detail="Prediction failed. Please try again later."  # Generic message to user
-        )
+        )        
