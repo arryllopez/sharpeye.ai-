@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Header, HTTPException, Depends
-from typing import List
+from fastapi import APIRouter, Header, HTTPException, Depends, Path
+from typing import List, Annotated
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 import os
+
 
 from app.betData.providers.theodds_nba_provider import (
     TheOddsNbaProvider,
@@ -17,15 +20,19 @@ provider = TheOddsNbaProvider()
 CRON_SECRET = os.getenv("CRON_SECRET", "")
 
 def verify_cron_secret(x_cron_secret: str = Header(None)):
-    """Verify the cron secret token"""
+    #verify the cron secret
     if not CRON_SECRET:
         raise HTTPException(status_code=500, detail="CRON_SECRET not configured")
     if x_cron_secret != CRON_SECRET:
         raise HTTPException(status_code=403, detail="Invalid cron secret")
     return True
 
+#cache miss graceful fallbacks can happen for this endpoint as calling theOddsAPI with this endpoint does not cost any usage quota.
 @router.get("/games", response_model=List[GameDTO])
-async def nba_games():
+async def nba_games(
+    #rate limiting
+    rate_limit: None = Depends(RateLimiter(times=10, seconds=60))  # 10 requests per minute
+):
     # List today's NBA games
     # Strategy: Check cache first, fallback to API if not cached
 
@@ -52,60 +59,50 @@ async def nba_games():
 
     return games
 
+#/games/id/players endpoint would cache miss when games are available but odds are not.
+# cannot have extra calls here, even with rate limiting I would burn through the free monthly usage 
 @router.get("/games/{event_id}/players", response_model=List[PlayerDTO])
-async def nba_game_players(event_id: str):
-    # List players that currently have props for this game
-    # Strategy: Check cache first, fallback to API if not cached
-    
-
-    # Try to get from cache
+async def nba_game_players(
+    event_id: Annotated[
+        str,
+        Path(
+            title = "NBA GAME EVENT ID",
+            description = "TheOddsAPI event id for each NBA game",
+            min_length = 32,
+            max_length=32,
+            pattern="^[a-f0-9]{32}$" 
+        )
+    ],
+    rate_limit: None = Depends(RateLimiter(times=10, seconds=60))
+):
+    # CACHE ONLY - No fallback!
     cached_players = await cache_service.get_players(event_id)
-    if cached_players is not None:
-        # Cache hit - convert dict back to PlayerDTO objects
-        return [
-            PlayerDTO(
-                player_id=p["player_id"],
-                name=p["name"],
-                prop_line=p["prop_line"],
-                bookmakers=[
-                    BookmakerOdds(
-                        bookmaker_key=b["bookmaker_key"],
-                        bookmaker_name=b["bookmaker_name"],
-                        over_odds=b["over_odds"],
-                        under_odds=b["under_odds"]
-                    )
-                    for b in p["bookmakers"]
-                ],
-                data_as_of=p["data_as_of"]
-            )
-            for p in cached_players
-        ]
-
-    # Cache miss - fetch from TheOdds API (uses quota!)
-    players = await provider.get_prop_players(event_id)
-
-    # Cache the results for 10 hours (expires at 2 AM ET)
-    players_dict = [
-        {
-            "player_id": p.player_id,
-            "name": p.name,
-            "prop_line": p.prop_line,
-            "bookmakers": [
-                {
-                    "bookmaker_key": b.bookmaker_key,
-                    "bookmaker_name": b.bookmaker_name,
-                    "over_odds": b.over_odds,
-                    "under_odds": b.under_odds
-                }
-                for b in p.bookmakers
+    
+    if cached_players is None:
+        raise HTTPException(
+            status_code=404, 
+            detail="No player odds available for this game. Check back at 4 PM ET"
+        )
+    
+    # Cache hit - reconstruct PlayerDTOs
+    return [
+        PlayerDTO(
+            player_id=p["player_id"],
+            name=p["name"],
+            prop_line=p["prop_line"],
+            bookmakers=[
+                BookmakerOdds(
+                    bookmaker_key=b["bookmaker_key"],
+                    bookmaker_name=b["bookmaker_name"],
+                    over_odds=b["over_odds"],
+                    under_odds=b["under_odds"]
+                )
+                for b in p["bookmakers"]
             ],
-            "data_as_of": p.data_as_of
-        }
-        for p in players
+            data_as_of=p["data_as_of"]
+        )
+        for p in cached_players
     ]
-    await cache_service.set_players(event_id, players_dict, ttl_hours=10)
-
-    return players
 
 
 # Cron job endpoints -- utilizes the secret token and the verify function to be accessible

@@ -19,6 +19,10 @@ import pandas as pd
 from pathlib import Path #abosltue paths
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+#security middleware 
+from fastapi import Request
+from starlette.applications import Starlette
+from starlette.middleware.base import BaseHTTPMiddleware 
 #os for environment variables
 import os
 #logging
@@ -97,8 +101,56 @@ async def lifespan(app: FastAPI):
             await FastAPILimiter.close()
         except Exception as e:
             logging.warning(f"Error closing FastAPILimiter : {e}")
+            print(f"Warning: Error closing FastAPILimiter: {e}")    # Close cache service
     await cache_service.close()
     model_data.clear()
+
+
+#class for security middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Looser CSP for /docs endpoints
+        if request.url.path.startswith(('/docs', '/redoc', '/openapi.json')):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "img-src 'self' https://fastapi.tiangolo.com data:; "
+                "font-src 'self' https://cdn.jsdelivr.net data:"
+            )        
+        else:
+            # Strict CSP for API endpoints
+            response.headers["Content-Security-Policy"] = "default-src 'self'"
+        
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+        return response
+
+#logging middleware
+#define the logging config
+logging.basicConfig(
+    filename="app.log", #log the data into this file 
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request:Request, call_next):
+        response = await call_next(request) #await the next request 
+        #log the request details
+        client_ip = request.client.host if request.client else "unknown"        
+        method = request.method #get post put or delete
+        url = request.url.path
+        status_code = response.status_code
+
+        logger.info(f"Request type: {method} ,{url} returned {status_code}")
+
+        return response
+
 
 #application instance
 app = FastAPI(
@@ -125,6 +177,12 @@ app.add_middleware(
 )
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible
+
+#include the security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+#include the logging middleware
+app.add_middleware(LoggingMiddleware)
 
 if ENV == "development":
     app.include_router(debug_router)
@@ -225,8 +283,10 @@ async def debug_feature_calculation(
     db = Depends(get_db)
 ):
     feature_service = FeatureCalculationService(db)
-    pred_date = datetime.strptime(game_date, "%Y-%m-%d").date()
-
+    try:
+        pred_date = datetime.strptime(game_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid game_date format. Use YYYY-MM-DD.")
     #Get L5 stats
     l5_stmt = select(PlayerGameLog).where(
         and_(
@@ -390,4 +450,4 @@ async def predict_player_points(
         raise HTTPException(
             status_code=500,
             detail="Prediction failed. Please try again later."  # Generic message to user
-        )
+        )        
