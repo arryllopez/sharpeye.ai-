@@ -43,7 +43,7 @@ model_data = {} #avoids reloading model on every request and is cleared on shutd
 #load environment variables from .env file
 load_dotenv() #solely for checking environment mode
 
-ENV = os.getenv("ENV", "development")
+ENV = os.getenv("ENV", "production")
 
 #debug router for development only
 debug_router=APIRouter(prefix="/debug", tags=["debug"])
@@ -140,14 +140,13 @@ logger = logging.getLogger(__name__)
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request:Request, call_next):
-        response = await call_next(request) #await the next request 
-        #log the request details
-        client_ip = request.client.host if request.client else "unknown"        
-        method = request.method #get post put or delete
-        url = request.url.path
+        response = await call_next(request)
+        client_ip = request.client.host if request.client else "unknown"
+        method = request.method
+        safe_url = request.url.path
         status_code = response.status_code
 
-        logger.info(f"Request type: {method} ,{url} returned {status_code}")
+        logger.info(f"{client_ip} - {method} {safe_url} -> {status_code}")
 
         return response
 
@@ -165,15 +164,14 @@ app = FastAPI(
 
 )
 
-# CORS configuration
 CORS_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Cron-Secret"],
 )
 
 app.include_router(nba_router) #include the nba router to the main app, so all endpoints defined in nba_routes.py are accessible

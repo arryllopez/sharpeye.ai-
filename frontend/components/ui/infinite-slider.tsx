@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils"
 import type React from "react"
 
-import { useMotionValue, animate, motion } from "framer-motion"
+import { useMotionValue, animate, motion } from "motion/react"
 import { useState, useEffect } from "react"
 import useMeasure from "react-use-measure"
 

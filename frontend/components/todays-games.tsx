@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import { ChevronRight, Clock } from "lucide-react"
 import Link from "next/link"
 import { Button } from "./ui/button"
@@ -166,27 +166,36 @@ export function TodaysGames() {
 
   React.useEffect(() => {
     async function fetchGames() {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       try {
         setLoading(true);
         setError(null);
-        
+
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const response = await fetch(`${apiUrl}/nba/games`); 
-   
+        if (!apiUrl) {
+          throw new Error("API URL is not configured");
+        }
+
+        const response = await fetch(`${apiUrl}/nba/games`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch games: ${response.status}`);
         }
-        
+
         const apiGames: ApiGame[] = await response.json();
-        
+
         const transformedGames: FrontendGame[] = apiGames.map((game) => {
           const commenceDate = new Date(game.commence_time);
           const timeStr = commenceDate.toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
-            timeZone: "America/New_York", 
-          }) + " ET";          
+            timeZone: "America/New_York",
+          }) + " ET";
           return {
             id: game.event_id,
             time: timeStr,
@@ -201,10 +210,14 @@ export function TodaysGames() {
             },
           };
         });
-        
+
         setGames(transformedGames);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load games");
+        if (err instanceof Error && err.name === 'AbortError') {
+          setError("Request timed out. Please try again.");
+        } else {
+          setError(err instanceof Error ? err.message : "Failed to load games");
+        }
         console.error("Games fetch error:", err);
       } finally {
         setLoading(false);
