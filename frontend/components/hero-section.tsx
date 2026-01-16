@@ -7,8 +7,9 @@ import { ProgressiveBlur } from "@/components/ui/progressive-blur"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Bet365Logo, DraftKingsLogo, FanDuelLogo, BetMGMLogo} from "@/components/ui/logos1/index"
 import { Timeline } from "@/components/ui/timeline"
+import type { Variants } from "motion/react"
 
-const transitionVariants = {
+const transitionVariants: { item: Variants } = {
   item: {
     hidden: {
       opacity: 0,
