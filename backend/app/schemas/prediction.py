@@ -7,14 +7,12 @@ from datetime import date
 
 class PredictionRequest(BaseModel):
     # Request body for /predict endpoint
-    # All fields populated by frontend from TheOddsAPI data
-    # User can adjust prop_line, over_odds, under_odds via sliders
+    # Frontend sends player name + game context, backend auto-looks up player's team
 
     player: str = Field(..., description="Player's full name from TheOddsAPI")
-    player_team: str = Field(..., description="Player's team abbreviation (e.g., 'LAL')")
-    opponent: str = Field(..., description="Opponent team full name (e.g., 'Boston Celtics')")
+    home_team: str = Field(..., description="Home team abbreviation (e.g., 'LAL')")
+    away_team: str = Field(..., description="Away team abbreviation (e.g., 'BOS')")
     game_date: date = Field(..., description="Game date (YYYY-MM-DD)")
-    is_home: bool = Field(..., description="True if home game, False if away")
 
     # Optional betting line info - adjustable via slider
     prop_line: Optional[float] = Field(None, description="Points prop line (e.g., 25.5)")
@@ -25,10 +23,9 @@ class PredictionRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "player": "LeBron James",
-                "player_team": "LAL",
-                "opponent": "Boston Celtics",
+                "home_team": "LAL",
+                "away_team": "BOS",
                 "game_date": "2025-01-15",
-                "is_home": True,
                 "prop_line": 24.5,
                 "over_odds": -110,
                 "under_odds": -110

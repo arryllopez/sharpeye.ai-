@@ -7,7 +7,7 @@ import pandas as pd
 import pickle
 import os
 from pathlib import Path
-from nba_api.stats.endpoints import leaguegamelog, LeagueGameFinder
+from nba_api.stats.endpoints import leaguegamelog, LeagueGameFinder, commonallplayers
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 

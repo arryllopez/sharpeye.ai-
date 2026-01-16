@@ -384,20 +384,24 @@ async def predict_player_points(
     """
     Predict NBA player points for upcoming game.
 
-    This endpoint calculates all features from the database, runs XGBoost prediction,
-    and optionally performs Monte Carlo simulation if a prop line is provided.
+    This endpoint auto-looks up the player's team from the database, calculates all
+    features, runs XGBoost prediction, and optionally performs Monte Carlo simulation.
 
     Required parameters:
     - player: Player name (full or partial)
-    - player_team: Team abbreviation (e.g., "LAL")
-    - opponent: Opponent full name (e.g., "Boston Celtics")
+    - home_team: Home team abbreviation (e.g., "LAL")
+    - away_team: Away team abbreviation (e.g., "BOS")
     - game_date: Game date (YYYY-MM-DD)
-    - is_home: True if home game, False if away
 
     Optional parameters:
     - prop_line: Betting line (e.g., 25.5)
     - over_odds: Over odds (default: -110)
     - under_odds: Under odds (default: -110)
+
+    The backend will automatically:
+    - Look up which team the player is on
+    - Determine if it's a home or away game
+    - Identify the opponent
 
     Returns comprehensive prediction with:
     - Predicted points
@@ -426,10 +430,9 @@ async def predict_player_points(
         # Generate prediction
         result = await prediction_service.predict(
             player=prediction_request.player,
-            player_team=prediction_request.player_team,
-            opponent=prediction_request.opponent,
+            home_team=prediction_request.home_team,
+            away_team=prediction_request.away_team,
             game_date=prediction_request.game_date,
-            is_home=prediction_request.is_home,
             prop_line=prediction_request.prop_line,
             over_odds=prediction_request.over_odds or -110,
             under_odds=prediction_request.under_odds or -110
@@ -437,11 +440,23 @@ async def predict_player_points(
 
         return result
     except ValueError as e:
-        # Player not found or invalid input
-        raise HTTPException(
-            status_code=404, 
-            detail="Player not found in database. Data may not be available yet."
-        )
+        # Player not found or team mismatch
+        error_msg = str(e)
+        if "not found" in error_msg.lower():
+            raise HTTPException(
+                status_code=404,
+                detail="Player not found in database. Data may not be available yet."
+            )
+        elif "doesn't match" in error_msg.lower():
+            raise HTTPException(
+                status_code=400,
+                detail=error_msg
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=error_msg
+            )
     except Exception as e:
         # Unexpected error
         logging.error(f"Prediction error: {str(e)}", exc_info=True)  # Log details server-side

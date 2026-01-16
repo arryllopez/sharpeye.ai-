@@ -300,7 +300,7 @@ export function TodaysGames() {
                 </h3>
 
                 <Link
-                  href={`/games/${game.id}`}
+                  href={`/games/${game.id}?home=${encodeURIComponent(game.homeTeam.abbr)}&away=${encodeURIComponent(game.awayTeam.abbr)}&time=${encodeURIComponent(game.time)}`}
                   className="mt-auto pt-4 flex items-center text-sm font-semibold group-hover:underline"
                 >
                   VIEW PLAYER POINTS

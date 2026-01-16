@@ -42,15 +42,30 @@ class PredictionService:
     async def predict(
         self,
         player: str,
-        player_team: str,
-        opponent: str,
+        home_team: str,
+        away_team: str,
         game_date: date,
-        is_home: bool,
         prop_line: Optional[float] = None,
         over_odds: int = -110,
         under_odds: int = -110
     ) -> PredictionResponse:
-      
+
+        # Step 0: Auto-lookup player's team from database and derive is_home/opponent
+        full_name, player_team, position = await self.feature_service.get_player_info(player, game_date)
+
+        # Determine if player is home or away, and who the opponent is
+        if player_team == home_team:
+            is_home = True
+            opponent = TEAM_ABBR_TO_NAME.get(away_team, away_team)
+        elif player_team == away_team:
+            is_home = False
+            opponent = TEAM_ABBR_TO_NAME.get(home_team, home_team)
+        else:
+            raise ValueError(
+                f"Player '{player}' is on team '{player_team}', "
+                f"which doesn't match home_team '{home_team}' or away_team '{away_team}'"
+            )
+
         # Step 1: Calculate features from database
         features_dict = await self.feature_service.build_features_for_prediction(
             player_name=player,
@@ -60,8 +75,8 @@ class PredictionService:
             is_home=is_home
         )
 
-        # Get player info
-        full_name, current_team, position = await self.feature_service.get_player_info(player, game_date)
+        # Player info already retrieved above
+        current_team = player_team
 
         # CRITICAL: Validate critical features before proceeding
         # These features are essential for model accuracy - fail fast if missing
