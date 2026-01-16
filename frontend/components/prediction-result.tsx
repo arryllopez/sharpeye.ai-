@@ -91,7 +91,7 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
 
       {/* Main Prediction */}
       <div className="text-center py-4 rounded-lg bg-muted/50">
-        <p className="text-sm text-muted-foreground mb-1">Predicted Points</p>
+        <p className="text-sm text-muted-foreground mb-1">Predicted Points Scored</p>
         <p className="text-4xl font-bold text-card-foreground">{prediction.predicted_points.toFixed(1)}</p>
         <div className="flex items-center justify-center gap-2 mt-2">
           <span className="text-sm text-muted-foreground">Line: {propLine}</span>
@@ -189,7 +189,7 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
             )}>
               {prediction.key_factors.matchup_favorability}
               <span className="block sm:inline sm:ml-1 text-xs text-muted-foreground font-normal">
-                ({prediction.matchup_analysis.opponent_defense_ppg.toFixed(1)} PPG allowed L5)
+                ({prediction.matchup_analysis.opponent_defense_ppg.toFixed(1)} OPP PPG allowed L5)
               </span>
             </span>
           </div>
