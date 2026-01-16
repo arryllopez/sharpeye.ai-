@@ -35,8 +35,8 @@ engine = create_async_engine(
     future=True,
     pool_pre_ping=True,  #enable pool pre-ping to check connections before using them
     #initializing database connections and max overflow of database connections
-    pool_size=5, #set a reasonable pool size for handling concurrent requests
-    max_overflow=10, #allow some overflow connections during peak times
+    pool_size=10, #set a reasonable pool size for handling concurrent requests
+    max_overflow=15, #allow some overflow connections during peak times (total max: 25)
     connect_args={
         "statement_cache_size": 0,  # required for Supabase pgBouncer compatibility
         #pgbouncer handles connection pooling 

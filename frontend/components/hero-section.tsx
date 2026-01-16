@@ -131,9 +131,6 @@ const TimelineSection = () => {
               ✓ Probability distributions with confidence intervals
             </div>
             <div className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
-              ✓ Historical hit rates for similar situations
-            </div>
-            <div className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
               ✓ Data-driven scoring insights
             </div>
           </div>
@@ -165,38 +162,38 @@ const LogoCloud = () => {
           </div>
           <div className="relative py-4 md:py-8 md:w-[calc(100%-13rem)] ">
             {" "}
-            {/* Taller + wider slider area */}
+       
             <InfiniteSlider speedOnHover={20} speed={40} gap={140}>
               {" "}
-              {/* Bigger gap */}
+         
               <div className="flex items-center">
-                <FanDuelLogo className="h-10 w-auto md:h-12" /> {/* 67% → 100% bigger */}
+                <FanDuelLogo className="h-10 w-auto md:h-12" /> 
               </div>
               <div className="flex items-center">
-                <DraftKingsLogo className="h-10 w-auto md:h-12" /> {/* 67% → 100% bigger */}
+                <DraftKingsLogo className="h-10 w-auto md:h-12" /> 
               </div>
               <div className="flex items-center">
-                <Bet365Logo className="h-10 w-auto md:h-12" /> {/* 67% → 100% bigger */}
+                <Bet365Logo className="h-10 w-auto md:h-12" /> 
               </div>
               <div className="flex items-center">
-                <BetMGMLogo className="h-10 w-auto md:h-12" /> {/* 67% → 100% bigger */}
+                <BetMGMLogo className="h-10 w-auto md:h-12" /> 
               </div>
              
               <div className="flex items-center">
                 <FanDuelLogo className="h-10 w-auto md:h-12" />
               </div>
               <div className="flex items-center">
-                <DraftKingsLogo className="h-10 w-auto md:h-12" /> {/* 67% → 100% bigger */}
+                <DraftKingsLogo className="h-10 w-auto md:h-12" /> 
               </div>
               <div className="flex items-center">
-                <Bet365Logo className="h-10 w-auto md:h-12" /> {/* 67% → 100% bigger */}
+                <Bet365Logo className="h-10 w-auto md:h-12" /> 
               </div>
               <div className="flex items-center">
-                <BetMGMLogo className="h-10 w-auto md:h-12" /> {/* 67% → 100% bigger */}
+                <BetMGMLogo className="h-10 w-auto md:h-12" /> 
               </div>
                
             </InfiniteSlider>
-            {/* Wider fade/blur areas */}
+         
             <div className="bg-linear-to-r from-background absolute inset-y-0 left-0 w-24"></div>
             <div className="bg-linear-to-l from-background absolute inset-y-0 right-0 w-24"></div>
             <ProgressiveBlur

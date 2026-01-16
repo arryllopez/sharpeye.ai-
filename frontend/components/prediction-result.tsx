@@ -83,7 +83,7 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
       className="mt-4 rounded-lg border border-border bg-background p-4 space-y-4"
     >
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-card-foreground">Prediction Result</h4>
+        <h4 className="font-semibold text-card-foreground">Sharpeye's analysis: {prediction.player_name}</h4>
         <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
           <X className="h-4 w-4" />
         </Button>
@@ -167,57 +167,59 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
             <p className="font-semibold">{prediction.player_stats.last_10_avg.toFixed(1)}</p>
           </div>
           <div className="p-2 rounded bg-muted/30">
-            <p className="text-xs text-muted-foreground">Minutes</p>
+            <p className="text-xs text-muted-foreground">L5 Minutes/Game</p>
             <p className="font-semibold">{prediction.player_stats.minutes_per_game.toFixed(1)}</p>
           </div>
         </div>
       </div>
 
       {/* Key Factors */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <h5 className="text-sm font-medium text-card-foreground flex items-center gap-2">
-          <Target className="h-4 w-4" /> Key Factors
+          Key Factors
         </h5>
-        <div className="space-y-1.5 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Matchup</span>
+        <div className="space-y-3 text-sm">
+          {/* Matchup */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-2 rounded bg-muted/20">
+            <span className="text-muted-foreground font-medium">Matchup</span>
             <span className={cn(
-              "font-medium",
+              "font-medium text-right",
               prediction.key_factors.matchup_favorability === "Favorable" && "text-emerald-600 dark:text-emerald-400",
               prediction.key_factors.matchup_favorability === "Unfavorable" && "text-red-600 dark:text-red-400"
             )}>
               {prediction.key_factors.matchup_favorability}
+              <span className="block sm:inline sm:ml-1 text-xs text-muted-foreground font-normal">
+                ({prediction.matchup_analysis.opponent_defense_ppg.toFixed(1)} PPG allowed L5)
+              </span>
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Pace Impact</span>
+
+          {/* Rest */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-2 rounded bg-muted/20">
+            <span className="text-muted-foreground font-medium">Rest</span>
             <span className={cn(
-              "font-medium",
-              prediction.key_factors.pace_impact === "Positive" && "text-emerald-600 dark:text-emerald-400",
-              prediction.key_factors.pace_impact === "Negative" && "text-red-600 dark:text-red-400"
-            )}>
-              {prediction.key_factors.pace_impact}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Rest</span>
-            <span className={cn(
-              "font-medium",
+              "font-medium text-right",
               prediction.key_factors.rest_impact === "Well-rested" && "text-emerald-600 dark:text-emerald-400",
               prediction.key_factors.rest_impact === "Back-to-back" && "text-red-600 dark:text-red-400"
             )}>
               {prediction.key_factors.rest_impact}
+              <span className="block sm:inline sm:ml-1 text-xs text-muted-foreground font-normal">
+                ({prediction.player_stats.rest_days} {prediction.player_stats.rest_days === 1 ? "day" : "days"} since last game)
+              </span>
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Defense Quality</span>
-            <span className={cn(
-              "font-medium",
-              prediction.matchup_analysis.defense_quality === "Weak" && "text-emerald-600 dark:text-emerald-400",
-              prediction.matchup_analysis.defense_quality === "Strong" && "text-red-600 dark:text-red-400"
-            )}>
-              {prediction.matchup_analysis.defense_quality}
-            </span>
+
+          {/* Expected Game Pace */}
+          <div className="flex flex-col gap-1 p-2 rounded bg-muted/20">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-medium">Expected Game Pace</span>
+              <span className="font-medium text-right">
+                {prediction.pace_context.expected_game_pace.toFixed(1)} poss/48 min
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              ({prediction.pace_context.player_team_pace.toFixed(1)} + {prediction.pace_context.opponent_pace.toFixed(1)}) / 2 from both teams L5
+            </p>
           </div>
         </div>
       </div>
