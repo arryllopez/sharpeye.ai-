@@ -3,6 +3,7 @@ from typing import List, Annotated
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 import os
+import secrets
 
 
 from app.betData.providers.theodds_nba_provider import (
@@ -20,12 +21,15 @@ provider = TheOddsNbaProvider()
 CRON_SECRET = os.getenv("CRON_SECRET", "")
 
 def verify_cron_secret(x_cron_secret: str = Header(None)):
-    #verify the cron secret
     if not CRON_SECRET:
         raise HTTPException(status_code=500, detail="CRON_SECRET not configured")
-    if x_cron_secret != CRON_SECRET:
+    if x_cron_secret is None:
+        raise HTTPException(status_code=403, detail="Missing X-Cron-Secret header")
+    if secrets.compare_digest(x_cron_secret, CRON_SECRET):
+        return True
+    else:
         raise HTTPException(status_code=403, detail="Invalid cron secret")
-    return True
+
 
 #cache miss graceful fallbacks can happen for this endpoint as calling theOddsAPI with this endpoint does not cost any usage quota.
 @router.get("/games", response_model=List[GameDTO])

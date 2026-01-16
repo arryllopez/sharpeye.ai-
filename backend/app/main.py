@@ -122,8 +122,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             )        
         else:
             # Strict CSP for API endpoints
-            response.headers["Content-Security-Policy"] = "default-src 'self'"
-        
+            response.headers["Content-Security-Policy"] = "default-src 'self'; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'"
+
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
