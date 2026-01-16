@@ -8,6 +8,7 @@ import { Button } from "./ui/button"
 import { cn } from "@/lib/utils"
 
 import { AnimatedGroup } from "@/components/ui/animated-group"
+import type { Variants } from "motion/react"
 
 //  This page displays the data returned from the getting games endpoint 
 //  - It defines the types returned from the API endpoint
@@ -67,7 +68,7 @@ const teamLogos: Record<string, string> = {
 };
 
 
-const transitionVariants = {
+const transitionVariants: { container: Variants; item: Variants } = {
   container: {
     visible: {
       transition: {
@@ -87,7 +88,7 @@ const transitionVariants = {
       y: 0,
       filter: "blur(0px)",
       transition: {
-        type: "spring",
+        type: "spring" as const,
         bounce: 0.3,
         duration: 0.8,
       },
@@ -95,29 +96,29 @@ const transitionVariants = {
   },
 }
 
-const cardAnimation = {
+const cardAnimation: Variants = {
   hover: {
     scale: 1.02,
     transition: { duration: 0.3 },
   },
 }
 
-const imageAnimation = {
+const imageAnimation: Variants = {
   hover: {
     scale: 1.15,
     rotate: 5,
     x: 10,
-    transition: { duration: 0.4, ease: "easeInOut" },
+    transition: { duration: 0.4, ease: "easeInOut" as const },
   },
 }
 
-const arrowAnimation = {
+const arrowAnimation: Variants = {
   hover: {
     x: 5,
     transition: {
       duration: 0.3,
-      ease: "easeInOut",
-      repeat: Number.POSITIVE_INFINITY,
+      ease: "easeInOut" as const,
+      repeat: Infinity,
       repeatType: "reverse" as const,
     },
   },
