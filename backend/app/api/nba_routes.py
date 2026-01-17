@@ -163,11 +163,4 @@ async def cron_daily_odds_refresh():
         raise HTTPException(status_code=500, detail=f"Cron job failed: {str(e)}")
 
 
-@router.post("/cron/clear-cache", dependencies=[Depends(verify_cron_secret)])
-async def cron_clear_cache():
-    # Manually clear all cached data for today (force refresh)
-    try:
-        deleted = await cache_service.clear_today()
-        return {"status": "success", "message": f"Cleared {deleted} cached entries"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Cache clear failed: {str(e)}")
+
