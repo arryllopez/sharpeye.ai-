@@ -515,7 +515,7 @@ export function PlayerPropsView({ gameId, homeTeam, awayTeam, gameTime }: Player
 
         if (!playersResponse.ok) {
           if (playersResponse.status === 404) {
-            throw new Error("No player odds available for this game. Check back at 4 PM ET.")
+            throw new Error("No player odds available for this game. Check back at 9:30 AM ET.")
           }
           throw new Error(`Failed to fetch players: ${playersResponse.status}`)
         }
