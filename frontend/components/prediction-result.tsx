@@ -121,16 +121,17 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
             </p>
           </div>
           <div className="p-3 rounded-lg bg-muted/50">
-            <p className="text-xs text-muted-foreground mb-1">Edge</p>
+            <p className="text-xs text-muted-foreground mb-1">Predicted Edge</p>
             <p className={cn(
               "text-xl font-bold",
               prediction.monte_carlo.edge > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
             )}>
               {prediction.monte_carlo.edge > 0 ? "+" : ""}{prediction.monte_carlo.edge.toFixed(1)}%
             </p>
+            <p className="text-[10px] text-muted-foreground mt-1">Based on model prediction</p>
           </div>
           <div className="p-3 rounded-lg bg-muted/50">
-            <p className="text-xs text-muted-foreground mb-1">Confidence</p>
+            <p className="text-xs text-muted-foreground mb-1">Model Confidence</p>
             <p className="text-xl font-bold text-card-foreground">
               {prediction.monte_carlo.confidence_score.toFixed(0)}%
             </p>
