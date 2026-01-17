@@ -4,6 +4,8 @@ import { motion } from "motion/react"
 import { X, TrendingUp, TrendingDown, Minus, Activity, Target, Zap, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useMemo } from "react"
+import { AreaChart, Area, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip } from "recharts"
 
 interface PlayerStats {
   last_5_avg: number
@@ -71,9 +73,42 @@ interface PredictionResultProps {
   onClose: () => void
 }
 
+// Generate normal distribution curve data from percentiles
+function generateDistributionData(
+  predicted: number,
+  percentiles: Record<number, number>,
+  propLine: number
+) {
+  const p5 = percentiles[5] ?? predicted - 10
+  const p95 = percentiles[95] ?? predicted + 10
+  const std = (p95 - p5) / 3.29
+
+  const points: { x: number; y: number; isUnder: boolean }[] = []
+  const min = Math.max(0, predicted - 4 * std)
+  const max = predicted + 4 * std
+  const step = (max - min) / 60
+
+  for (let x = min; x <= max; x += step) {
+    const y = Math.exp(-0.5 * Math.pow((x - predicted) / std, 2)) / (std * Math.sqrt(2 * Math.PI))
+    points.push({ x: Math.round(x * 10) / 10, y, isUnder: x <= propLine })
+  }
+
+  return points
+}
+
 export function PredictionResult({ prediction, propLine, onClose }: PredictionResultProps) {
   const diff = prediction.predicted_points - propLine
   const isOver = diff > 0
+
+  // Generate distribution data for chart
+  const distributionData = useMemo(() => {
+    if (!prediction.monte_carlo) return []
+    return generateDistributionData(
+      prediction.predicted_points,
+      prediction.monte_carlo.percentiles,
+      propLine
+    )
+  }, [prediction.predicted_points, prediction.monte_carlo, propLine])
 
   return (
     <motion.div
@@ -153,7 +188,100 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
         </div>
       )}
 
-      {/* Player Stats */}
+      {prediction.monte_carlo && distributionData.length > 0 && (
+        <div className="space-y-2">
+          <h5 className="text-sm font-medium text-card-foreground">Outcome Distribution</h5>
+          <div className="h-32 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={distributionData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="underGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="overGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="x"
+                  type="number"
+                  domain={['dataMin', 'dataMax']}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#888' }}
+                  tickFormatter={(v) => Math.round(v).toString()}
+                  ticks={[
+                    Math.round(distributionData[0]?.x ?? 0),
+                    Math.round(propLine),
+                    Math.round(prediction.predicted_points),
+                    Math.round(distributionData[distributionData.length - 1]?.x ?? 40)
+                  ].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b)}
+                />
+                <YAxis hide domain={[0, 'auto']} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-background border border-border rounded px-2 py-1 text-xs">
+                          {payload[0].payload.x.toFixed(1)} pts
+                        </div>
+                      )
+                    }
+                    return null
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="y"
+                  stroke="#10b981"
+                  fill="url(#overGradient)"
+                  strokeWidth={2}
+                />
+                <ReferenceLine
+                  x={propLine}
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  label={{
+                    value: `Line: ${propLine}`,
+                    position: 'top',
+                    fill: '#f59e0b',
+                    fontSize: 10,
+                  }}
+                />
+                <ReferenceLine
+                  x={prediction.predicted_points}
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  label={{
+                    value: `Pred: ${prediction.predicted_points.toFixed(1)}`,
+                    position: 'top',
+                    fill: '#3b82f6',
+                    fontSize: 10,
+                  }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-0.5 bg-amber-500 inline-block" style={{ borderStyle: 'dashed' }}></span>
+              Prop Line
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-0.5 bg-blue-500 inline-block"></span>
+              Prediction
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center">
+            Based on 10,000 simulations
+          </p>
+        </div>
+      )}
+
+ 
       <div className="space-y-2">
         <h5 className="text-sm font-medium text-card-foreground flex items-center gap-2">
           <Activity className="h-4 w-4" /> Recent Performance
@@ -174,13 +302,13 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
         </div>
       </div>
 
-      {/* Key Factors */}
+
       <div className="space-y-3">
         <h5 className="text-sm font-medium text-card-foreground flex items-center gap-2">
           Key Factors
         </h5>
         <div className="space-y-3 text-sm">
-          {/* Matchup */}
+         
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-2 rounded bg-muted/20">
             <span className="text-muted-foreground font-medium">Matchup</span>
             <span className={cn(
@@ -195,7 +323,7 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
             </span>
           </div>
 
-          {/* Rest */}
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-2 rounded bg-muted/20">
             <span className="text-muted-foreground font-medium">Rest</span>
             <span className={cn(
@@ -210,7 +338,6 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
             </span>
           </div>
 
-          {/* Expected Game Pace */}
           <div className="flex flex-col gap-1 p-2 rounded bg-muted/20">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground font-medium">Expected Game Pace</span>
@@ -225,7 +352,7 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
         </div>
       </div>
 
-      {/* Prediction Interval */}
+
       <div className="text-center text-xs text-muted-foreground pt-2 border-t border-border/50">
         90% Confidence: {prediction.prediction_interval.lower_90.toFixed(1)} - {prediction.prediction_interval.upper_90.toFixed(1)} pts
         <span className="mx-2">•</span>
