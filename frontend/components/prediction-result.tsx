@@ -191,79 +191,85 @@ export function PredictionResult({ prediction, propLine, onClose }: PredictionRe
       {prediction.monte_carlo && distributionData.length > 0 && (
         <div className="space-y-2">
           <h5 className="text-sm font-medium text-card-foreground">Outcome Distribution</h5>
-          <div className="h-32 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={distributionData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="underGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
-                  </linearGradient>
-                  <linearGradient id="overGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="x"
-                  type="number"
-                  domain={['dataMin', 'dataMax']}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: '#888' }}
-                  tickFormatter={(v) => Math.round(v).toString()}
-                  ticks={[
-                    Math.round(distributionData[0]?.x ?? 0),
-                    Math.round(propLine),
-                    Math.round(prediction.predicted_points),
-                    Math.round(distributionData[distributionData.length - 1]?.x ?? 40)
-                  ].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b)}
-                />
-                <YAxis hide domain={[0, 'auto']} />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-background border border-border rounded px-2 py-1 text-xs">
-                          {payload[0].payload.x.toFixed(1)} pts
-                        </div>
-                      )
-                    }
-                    return null
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="y"
-                  stroke="#10b981"
-                  fill="url(#overGradient)"
-                  strokeWidth={2}
-                />
-                <ReferenceLine
-                  x={propLine}
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  label={{
-                    value: `Line: ${propLine}`,
-                    position: 'top',
-                    fill: '#f59e0b',
-                    fontSize: 10,
-                  }}
-                />
-                <ReferenceLine
-                  x={prediction.predicted_points}
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  label={{
-                    value: `Pred: ${prediction.predicted_points.toFixed(1)}`,
-                    position: 'top',
-                    fill: '#3b82f6',
-                    fontSize: 10,
-                  }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="relative">
+            <span className="absolute -left-1 top-1/2 -translate-y-1/2 -rotate-90 text-[9px] text-muted-foreground whitespace-nowrap origin-center">
+              Likelihood
+            </span>
+            <div className="h-32 w-full pl-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={distributionData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="underGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="overGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="x"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: '#888' }}
+                    tickFormatter={(v) => Math.round(v).toString()}
+                    ticks={[
+                      Math.round(distributionData[0]?.x ?? 0),
+                      Math.round(propLine),
+                      Math.round(prediction.predicted_points),
+                      Math.round(distributionData[distributionData.length - 1]?.x ?? 40)
+                    ].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b)}
+                    label={{ value: 'Points Scored', position: 'bottom', offset: -5, fontSize: 10, fill: '#888' }}
+                  />
+                  <YAxis hide domain={[0, 'auto']} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-background border border-border rounded px-2 py-1 text-xs">
+                            {payload[0].payload.x.toFixed(1)} pts
+                          </div>
+                        )
+                      }
+                      return null
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="y"
+                    stroke="#10b981"
+                    fill="url(#overGradient)"
+                    strokeWidth={2}
+                  />
+                  <ReferenceLine
+                    x={propLine}
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    label={{
+                      value: `Line: ${propLine}`,
+                      position: 'top',
+                      fill: '#f59e0b',
+                      fontSize: 10,
+                    }}
+                  />
+                  <ReferenceLine
+                    x={prediction.predicted_points}
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    label={{
+                      value: `Pred: ${prediction.predicted_points.toFixed(1)}`,
+                      position: 'top',
+                      fill: '#3b82f6',
+                      fontSize: 10,
+                    }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
           <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
