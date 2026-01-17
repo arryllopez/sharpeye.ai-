@@ -52,6 +52,10 @@ class TheOddsNbaProvider:
             params={"dateFormat": "iso"},
         )
 
+        # Filter to only today's games (ET timezone)
+        et_tz = pytz.timezone("America/New_York")
+        today = datetime.now(et_tz).date()
+
         return [
             GameDTO(
                 event_id=e["id"],
@@ -60,6 +64,8 @@ class TheOddsNbaProvider:
                 away_team=e["away_team"],
             )
             for e in data
+            if datetime.fromisoformat(e["commence_time"].replace("Z", "+00:00"))
+               .astimezone(et_tz).date() == today
         ]
 
     async def get_prop_players(self, event_id: str) -> List[PlayerDTO]:
