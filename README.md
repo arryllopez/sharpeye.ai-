@@ -109,14 +109,15 @@ Key Features:
 ### Built With
 
 * [![FastAPI][FastAPI]][FastAPI-url]
-* [![React][React.js]][React-url]
+* [![Next.js][Next.js]][Next.js-url]
 * [![PostgreSQL][PostgreSQL]][PostgreSQL-url]
 * [![Python][Python]][Python-url]
-* [![Railway][Supabase]][Supabase-url]
+* [![XGBoost][XGBoost]][XGBoost-url]
+* [![Google Cloud][GCP]][GCP-url]
 * [![Vercel][Vercel]][Vercel-url]
-* [![Pandas][Pandas]][Pandas-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 ## Architecture
 
@@ -291,6 +292,14 @@ Project Link: [https://github.com/arryllopez/sharpeye.ai](https://github.com/arr
 [linkedin-url]: https://linkedin.com/in/arryl-lopez
 [product-screenshot]: images/screenshot.png
 <!-- Shields.io badges. You can a comprehensive list with many more badges at: https://github.com/inttter/md-badges -->
+[Next.js]: https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
+[Next.js-url]: https://nextjs.org/
+
+[XGBoost]: https://img.shields.io/badge/XGBoost-EB5E28?style=for-the-badge
+[XGBoost-url]: https://xgboost.readthedocs.io/
+
+[GCP]: https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white
+[GCP-url]: https://cloud.google.com/
 
 [FastAPI]: https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white
 [FastAPI-url]: https://fastapi.tiangolo.com/
