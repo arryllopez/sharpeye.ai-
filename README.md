@@ -36,7 +36,12 @@
 </div>
 
 
-<h3 align="center">SharpEye.ai</h3>
+<h3 style="text-align:center;">
+  <a href="https://sharpeye-io.vercel.app/" target="_blank" rel="noopener noreferrer">
+    SharpEye.ai
+  </a>
+</h3>
+
 
   <p align="center">
     AI-powered NBA player points forecast prediction platform using machine learning and Monte Carlo simulations
