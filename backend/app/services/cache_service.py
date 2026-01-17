@@ -118,7 +118,7 @@ class CacheService:
             print(f"Error reading players from cache: {e}")
             return None
 
-    async def set_players(self, event_id: str, players: List[dict], ttl_hours: int = 24) -> bool:
+    async def set_players(self, event_id: str, players: List[dict], ttl_hours: int = 12) -> bool:
         # Cache player props for a specific game with TTL
         # Args:
         #   event_id: TheOdds API event ID
