@@ -208,7 +208,7 @@ _For more examples, please refer to the [Documentation](https://github.com/arryl
 - [x] Feature calculation service (PostgreSQL-based)
 - [x] /predict API endpoint
 - [x] Github Actions cron jobs for daily automation
-- [x] FastAPI backend deployment (Render)
+- [x] FastAPI backend deployment (Google Cloud Run)
 - [x] React frontend development
 - [x] Frontend deployment (Vercel) or Render, currently debating architecture decisions
 - [ ] Multi-prop support (rebounds, assists, etc.)
