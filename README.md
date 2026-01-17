@@ -36,11 +36,10 @@
 </div>
 
 
-<h3 style="text-align:center;">
-  <a href="https://sharpeye-io.vercel.app/" target="_blank" rel="noopener noreferrer">
-    SharpEye.ai
-  </a>
-</h3>
+<a href="https://sharpeye-io.vercel.app/" target="_blank" rel="noopener noreferrer">
+  <h3 style="text-align:center;">SharpEye.ai</h3>
+</a>
+
 
 
   <p align="center">
