@@ -204,8 +204,8 @@ _For more examples, please refer to the [Documentation](https://github.com/arryl
 - [x] /predict API endpoint
 - [x] Github Actions cron jobs for daily automation
 - [x] FastAPI backend deployment (Render)
-- [ ] React frontend development
-- [ ] Frontend deployment (Vercel) or Render, currently debating architecture decisions
+- [x] React frontend development
+- [x] Frontend deployment (Vercel) or Render, currently debating architecture decisions
 - [ ] Multi-prop support (rebounds, assists, etc.)
     - [ ] Separate models per prop type
     - [ ] Parlay analysis
