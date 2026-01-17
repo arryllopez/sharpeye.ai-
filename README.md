@@ -85,7 +85,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![SharpEye.ai Screen Shot][product-screenshot]](https://sharpeye.ai)
+<img src="./Screenshot 2026-01-16 183709.png" alt="SharpEye.ai Logo" width="200" height="200">
 
 SharpEye.ai is an AI-powered sports prediction analytics platform that predicts NBA player points using XGBoost machine learning models and Monte Carlo simulations. The platform analyzes historical player performance, opponent defensive stats, rest days, home/away splits, and real-time odds to provide data-driven points forecasts with confidence intervals. this project aims to model uncertain future outcomes using historical data, quantifying risk by assigning probabilities to each possible result.
 
