@@ -1,9 +1,9 @@
-name: Afternoon Odds Refresh
+name: Morning Odds Refresh
 
 on:
   schedule:
-    # Runs at 4:30 PM ET (9:30 PM UTC) daily
-    - cron: '30 21 * * *'
+    # Runs at 9:30 AM ET (2:30 PM UTC) daily
+    - cron: '30 14 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
